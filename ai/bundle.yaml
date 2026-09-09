@@ -1,0 +1,37 @@
+name: talos-learning-bundle
+version: 1.0.0
+kind: ai-bundle
+summary: Talos Linux and Talos Kubernetes learning guidance for platform engineering work.
+private_notes:
+  - private/
+public_sources:
+  - docs/
+  - AGENTS.md
+  - README.md
+  - scripts/
+repo:
+  purpose: study-and-coaching-workspace
+  goal: become proficient as a Talos/Linux platform engineer across bare metal, Proxmox, and cloud environments
+  source_of_truth: docs/roadmap.md
+  private_working_dir: private/
+  safe_defaults:
+    - do not invent infrastructure credentials or real endpoints
+    - never commit secrets, tokens, certificates, or private keys
+    - prefer production-oriented examples over toy examples
+    - keep private notes out of public sharing flows
+  teaching_pattern:
+    - problem
+    - Talos implementation
+    - comparison
+    - commands
+    - internal behavior
+    - verification
+    - failure handling
+    - hands-on challenge
+  focus_areas:
+    - Talos architecture
+    - cluster lifecycle
+    - security artifacts and trust
+    - install and upgrade patterns
+    - Proxmox, bare metal, and cloud operations
+    - incident response and troubleshooting

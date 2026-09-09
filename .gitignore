@@ -1,0 +1,10 @@
+# Private working notes
+private/
+
+# Local or secret artifacts
+*.local
+*.secret
+*.pem
+*.key
+.env
+.env.*
