@@ -1135,12 +1135,12 @@ Working files prepared for this phase:
 - [x] **0.1 --- Inventory and prerequisites:** Confirm the administrator
   workstation, AWS access, EC2 target region, public DNS choice,
   VirtualBox version and available CPU/RAM/disk.
-- [ ] **0.2 --- Create EC2:** Launch a clean Ubuntu LTS instance with a
+- [x] **0.2 --- Create EC2:** Launch a clean Ubuntu LTS instance with a
   stable public endpoint and an administrator-only SSH path.
-- [ ] **0.3 --- Restrict ingress:** Permit TCP 22 only from the
+- [x] **0.3 --- Restrict ingress:** Permit TCP 22 only from the
   administrator public IP and TCP 443 for the PoC; keep all other
   inbound ports closed.
-- [ ] **0.4 --- Prepare EC2:** Patch the host, install Docker and Git,
+- [x] **0.4 --- Prepare EC2:** Patch the host, install Docker and Git,
   create the PoC working directory and confirm Docker operation.
 - [ ] **0.5 --- Publish HTTPS endpoint:** Run a minimal containerized
   endpoint behind TLS and verify its certificate and response.
@@ -1161,9 +1161,9 @@ Working files prepared for this phase:
 | Step | Status | Evidence / Decision |
 | --- | --- | --- |
 | 0.1 | Complete | Ubuntu WSL 2 verified with Terraform 1.16.3, AWS CLI 2.36.49, Git 2.43.0, OpenSSH 9.6p1 and `talosctl` 1.13.4. AWS profile `personal` is authorized; target region is `ap-south-1`. |
-| 0.2 | Pending | |
-| 0.3 | Pending | |
-| 0.4 | Pending | |
+| 0.2 | Complete | Ubuntu 24.04 LTS EC2 created with encrypted 60 GiB gp3 root disk, Elastic IP and SSM status `Online`. |
+| 0.3 | Complete | Inbound rules verified: TCP 22 restricted to the administrator `/32`; TCP 443 open for the Phase 0 edge test; no additional inbound rules. |
+| 0.4 | Complete | Cloud-init completed without fatal errors. Docker service is active, the `ubuntu` user has Docker-group access, `hello-world` ran successfully and Git is installed. Recoverable IPv6 IMDS probe warnings were accepted for the IPv4-only PoC VPC. |
 | 0.5 | Pending | |
 | 0.6 | Pending | |
 | 0.7 | Pending | |
