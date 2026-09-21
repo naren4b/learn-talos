@@ -1124,7 +1124,7 @@ Working files prepared for this phase:
 - `PHASE-0-SETUP.md` --- EC2, administrator-workstation and EDGE-001
   specifications, required binaries and validation commands.
 - `phase0-aws.tf` --- self-contained AWS configuration using profile
-  `terraform-bootstrap` in region `ap-south-1`.
+  `personal` in region `ap-south-1`.
 - `terraform.tfvars.example` --- safe input template; copy it to the
   Git-ignored `terraform.tfvars` before planning.
 - `setup-wsl.sh` --- installs Terraform, AWS CLI v2, Git, OpenSSH and
@@ -1132,7 +1132,7 @@ Working files prepared for this phase:
 - `.gitignore` --- excludes Terraform state/plans, credentials and
   generated administrative configurations.
 
-- [ ] **0.1 --- Inventory and prerequisites:** Confirm the administrator
+- [x] **0.1 --- Inventory and prerequisites:** Confirm the administrator
   workstation, AWS access, EC2 target region, public DNS choice,
   VirtualBox version and available CPU/RAM/disk.
 - [ ] **0.2 --- Create EC2:** Launch a clean Ubuntu LTS instance with a
@@ -1160,7 +1160,7 @@ Working files prepared for this phase:
 
 | Step | Status | Evidence / Decision |
 | --- | --- | --- |
-| 0.1 | In progress | AWS region is `ap-south-1`; Ubuntu WSL 2 is the administration environment; binary and AWS-profile checks are pending. |
+| 0.1 | Complete | Ubuntu WSL 2 verified with Terraform 1.16.3, AWS CLI 2.36.49, Git 2.43.0, OpenSSH 9.6p1 and `talosctl` 1.13.4. AWS profile `personal` is authorized; target region is `ap-south-1`. |
 | 0.2 | Pending | |
 | 0.3 | Pending | |
 | 0.4 | Pending | |
