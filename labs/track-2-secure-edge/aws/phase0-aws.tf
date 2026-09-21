@@ -11,7 +11,7 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = "terraform-bootstrap"
+  profile = "personal"
 
   default_tags {
     tags = {
@@ -246,5 +246,5 @@ output "ssh_command" {
 }
 
 output "ssm_start_session_command" {
-  value = "aws --profile terraform-bootstrap --region ${var.aws_region} ssm start-session --target ${aws_instance.control.id}"
+  value = "aws --profile personal --region ${var.aws_region} ssm start-session --target ${aws_instance.control.id}"
 }
