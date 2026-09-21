@@ -24,8 +24,8 @@ Required binaries:
 | Binary | Baseline | Purpose |
 | --- | --- | --- |
 | Oracle VirtualBox on Windows | 7.2.x base package | Runs `EDGE-001`; Extension Pack is not required. |
-| Terraform CLI in WSL | 1.15.x | Provisions Phase 0 AWS resources. |
-| AWS CLI in WSL | v2, current | Uses the `terraform-bootstrap` profile and validates AWS access. |
+| Terraform CLI in WSL | `>= 1.10, < 2.0`; verified with 1.16.3 | Provisions Phase 0 AWS resources. |
+| AWS CLI in WSL | v2; verified with 2.36.49 | Uses the `personal` profile and validates AWS access. |
 | Git in WSL | Current supported release | Stores reproducible PoC configuration. |
 | OpenSSH client in WSL | Ubuntu package | EC2 administration. |
 | `talosctl` in WSL | 1.13.4 | Talos API client for Phase 1; match the Talos version. |
@@ -58,8 +58,8 @@ Verify VirtualBox separately from Windows PowerShell:
 Configure and validate the named AWS profile:
 
 ```bash
-aws configure --profile terraform-bootstrap
-aws sts get-caller-identity --profile terraform-bootstrap
+aws configure --profile personal
+aws sts get-caller-identity --profile personal
 ```
 
 Never commit AWS credentials, Terraform state, SSH private keys,
