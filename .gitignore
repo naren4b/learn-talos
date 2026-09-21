@@ -8,3 +8,16 @@ private/
 *.key
 .env
 .env.*
+
+# Terraform local state and plans
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+crash.log
+crash.*.log
+
+# Talos and Kubernetes administrative credentials
+talosconfig
+kubeconfig

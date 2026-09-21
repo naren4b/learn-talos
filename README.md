@@ -18,6 +18,7 @@ The public curriculum is organized into modular docs under [docs/](docs/). The l
 ## Repo structure
 
 - [docs/](docs/): shareable learning curriculum and roadmap
+- [labs/](labs/): reproducible hands-on lab infrastructure and examples
 - [AGENTS.md](AGENTS.md): repo-specific guidance for AI agents
 - [README.md](README.md): public-facing overview of the workspace
 - [scripts/](scripts/): lightweight automation and repo utilities
@@ -33,6 +34,19 @@ The public-facing content should stay in the reusable docs and repo guidance, wh
 ## Core curriculum
 
 The public learning plan is now in [docs/roadmap.md](docs/roadmap.md). The original root-level objective content has been folded into the modular roadmap so the repo stays clean and shareable.
+
+## Secure zero-touch edge track
+
+Track 2 studies how a Talos edge appliance can be prepared centrally,
+shipped cold, enrolled across the Internet and managed without SSH.
+
+- [Track-2 architecture and phase plan](docs/track-2-secure-edge/README.md)
+- [Phase 0 setup](docs/track-2-secure-edge/phase-0-setup.md)
+- [Phase 0 AWS Terraform](labs/track-2-secure-edge/aws/phase0-aws.tf)
+- [Ubuntu WSL bootstrap](scripts/track-2/setup-wsl.sh)
+
+The implementation uses open-source and self-managed components. It does
+not depend on Omni or another paid fleet-management platform.
 
 ## Working conventions
 
