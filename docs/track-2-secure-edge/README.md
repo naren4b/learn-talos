@@ -1006,7 +1006,7 @@ appliance.
 
   CPU                                 2 vCPU
 
-  RAM                                 4 GiB
+  RAM                                 2 GiB
 
   Disk                                32 GiB dynamically allocated
 
@@ -1142,9 +1142,9 @@ Working files prepared for this phase:
   inbound ports closed.
 - [x] **0.4 --- Prepare EC2:** Patch the host, install Docker and Git,
   create the PoC working directory and confirm Docker operation.
-- [ ] **0.5 --- Publish HTTPS endpoint:** Run a minimal containerized
+- [x] **0.5 --- Publish HTTPS endpoint:** Run a minimal containerized
   endpoint behind TLS and verify its certificate and response.
-- [ ] **0.6 --- Create EDGE-001:** Create the VirtualBox VM with UEFI,
+- [x] **0.6 --- Create EDGE-001:** Create the VirtualBox VM with UEFI,
   one NAT NIC and a blank virtual disk. Do not add bridged or
   host-forwarded management access.
 - [ ] **0.7 --- Prove network separation:** Record the EC2 network and
@@ -1164,8 +1164,8 @@ Working files prepared for this phase:
 | 0.2 | Complete | Ubuntu 24.04 LTS EC2 created with encrypted 60 GiB gp3 root disk, Elastic IP and SSM status `Online`. |
 | 0.3 | Complete | Inbound rules verified: TCP 22 restricted to the administrator `/32`; TCP 443 open for the Phase 0 edge test; no additional inbound rules. |
 | 0.4 | Complete | Cloud-init completed without fatal errors. Docker service is active, the `ubuntu` user has Docker-group access, `hello-world` ran successfully and Git is installed. Recoverable IPv6 IMDS probe warnings were accepted for the IPv4-only PoC VPC. |
-| 0.5 | Pending | |
-| 0.6 | Pending | |
+| 0.5 | Complete | Caddy HTTPS endpoint verified at edge-poc.npanda.online; Docker and Caddy are active on the control host. |
+| 0.6 | Complete | EDGE-001 created in VirtualBox 7.2.18 with 2 vCPU, 2 GiB RAM, 32 GiB dynamic VDI, EFI firmware and one NAT NIC. Talos v1.13.4 ISO checksum verified before use. |
 | 0.7 | Pending | |
 | 0.8 | Pending | |
 | 0.9 | Pending | |
@@ -1589,4 +1589,77 @@ purpose instead of becoming an unexplained custom component.
 - Final Terraform plan: **No changes**.
 - No infrastructure replacement or destructive Terraform operation was performed.
 
-Next: recreate `EDGE-001` cleanly in VirtualBox.
+
+### Practical PoC Checkpoint — EDGE-001 Talos Bootstrap
+
+**Status: COMPLETE**
+
+EDGE-001 has progressed from a blank VirtualBox VM to a healthy single-node Talos Kubernetes control plane.
+
+#### Verified build
+
+- VirtualBox: 7.2.18.
+- VM: EDGE-001.
+- CPU: 2 vCPU.
+- RAM: 2 GiB.
+- Disk: 32 GiB dynamically allocated VDI.
+- Firmware: EFI.
+- Network: VirtualBox NAT.
+- Talos: v1.13.4.
+- Kubernetes: v1.36.1.
+- Talos installation disk: /dev/sda.
+- Talos node address inside VirtualBox NAT: 10.0.2.15.
+- Node role: controlplane.
+- Cluster: track-2-poc.
+- Final Talos state: **Running / Ready**.
+- Kubernetes node: **Ready**.
+- etcd, kube-apiserver, kube-controller-manager, kube-scheduler and kubelet verified healthy.
+- CoreDNS, Flannel and kube-proxy verified Running.
+
+#### Lab access path
+
+WSL uses local socat listeners for 10.0.2.15 and forwards traffic through the Windows/WSL gateway to VirtualBox NAT. VirtualBox forwards TCP 50000 for the Talos API and TCP 6443 for the Kubernetes API.
+
+This preserves 10.0.2.15 as the client destination so Talos certificate SAN validation succeeds. Connecting directly through the changing WSL/Windows gateway address caused certificate validation failures.
+
+This is a **lab-access workaround**, not the intended production remote-edge management architecture. A later phase will establish an outbound, mutually authenticated management path suitable for customer NAT boundaries.
+
+#### Talos bootstrap sequence learned
+
+Official Talos ISO -> Maintenance Mode -> Talos API -> Generate machine configuration -> Apply control-plane configuration -> Install to /dev/sda -> Detach ISO -> Boot from disk -> Authenticated Talos API -> Bootstrap etcd once -> Kubernetes control plane -> Node Ready.
+
+#### Critical troubleshooting lesson — installation media
+
+The main failure was not PKI or Kubernetes. Talos had successfully installed to /dev/sda, but VirtualBox continued booting from the ISO. Talos reported that it was already installed to disk but had booted from another media and requested a reboot from disk.
+
+Because the node was still running from installation media, it remained in Booting and produced misleading API/TLS symptoms.
+
+Resolution:
+
+1. Power off EDGE-001.
+2. Detach the Talos ISO.
+3. Change the first boot device to the virtual hard disk.
+4. Boot the VM again.
+5. Verify the node identifies itself as controlplane.
+6. Verify authenticated Talos API access.
+7. Bootstrap etcd exactly once.
+
+**Architecture lesson:** when a Talos node has been installed but does not progress normally, verify the boot source before debugging higher layers such as PKI, etcd or Kubernetes.
+
+#### PKI lesson
+
+- controlplane.yaml and talosconfig belong to the same generated trust set.
+- Regenerating only the administrative client configuration can create a CA/client identity that does not match the machine configuration already applied to the node.
+- Generated talosconfig, kubeconfig and machine secrets remain outside Git.
+
+#### Final validation
+
+- Authenticated Talos API returned client and server v1.13.4 with RBAC enabled.
+- Kubernetes node talos-jk6-ckg is Ready with role control-plane, Kubernetes v1.36.1 and internal IP 10.0.2.15.
+- kube-system control-plane pods, CoreDNS, Flannel and kube-proxy were Running.
+
+#### Current learning checkpoint
+
+We have now proven Talos ISO boot and maintenance mode, disk discovery, machine configuration, installation to disk, Talos PKI/authenticated API access, no-SSH administration, single-node etcd bootstrap, Kubernetes control-plane startup, and VirtualBox NAT behavior.
+
+Next: complete the remaining Phase 0 network-separation/outbound-HTTPS evidence, then move from local NAT forwarding to the Track-2 secure EDGE-to-control-plane connectivity/enrollment design.
