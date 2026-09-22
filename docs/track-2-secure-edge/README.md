@@ -1147,13 +1147,13 @@ Working files prepared for this phase:
 - [x] **0.6 --- Create EDGE-001:** Create the VirtualBox VM with UEFI,
   one NAT NIC and a blank virtual disk. Do not add bridged or
   host-forwarded management access.
-- [ ] **0.7 --- Prove network separation:** Record the EC2 network and
+- [x] **0.7 --- Prove network separation:** Record the EC2 network and
   EDGE private/NAT network, confirming that EC2 has no route to the
   EDGE private address.
-- [ ] **0.8 --- Prove outbound HTTPS:** From the EDGE-side network,
+- [x] **0.8 --- Prove outbound HTTPS:** From the EDGE-side network,
   connect to the public HTTPS endpoint and capture the corresponding
   server access log.
-- [ ] **0.9 --- Phase review:** Validate all Phase 0 acceptance criteria
+- [x] **0.9 --- Phase review:** Validate all Phase 0 acceptance criteria
   and answer the five architecture learning questions in Section 34.
 
 #### Phase 0 Evidence Log
@@ -1166,9 +1166,9 @@ Working files prepared for this phase:
 | 0.4 | Complete | Cloud-init completed without fatal errors. Docker service is active, the `ubuntu` user has Docker-group access, `hello-world` ran successfully and Git is installed. Recoverable IPv6 IMDS probe warnings were accepted for the IPv4-only PoC VPC. |
 | 0.5 | Complete | Caddy HTTPS endpoint verified at edge-poc.npanda.online; Docker and Caddy are active on the control host. |
 | 0.6 | Complete | EDGE-001 created in VirtualBox 7.2.18 with 2 vCPU, 2 GiB RAM, 32 GiB dynamic VDI, EFI firmware and one NAT NIC. Talos v1.13.4 ISO checksum verified before use. |
-| 0.7 | Pending | |
-| 0.8 | Pending | |
-| 0.9 | Pending | |
+| 0.7 | Complete | AWS control host uses VPC `10.20.0.0/16` with EC2 private IP `10.20.10.27`; EDGE-001 uses VirtualBox NAT address `10.0.2.15`. AWS route tables contain only the local `10.20.0.0/16` route plus the Internet default route and no route to EDGE `10.0.2.0/24`, proving the control plane cannot directly route to the edge private address. |
+| 0.8 | Complete | A temporary `curlimages/curl:8.16.0` diagnostic pod on EDGE-001 connected outbound from pod IP `10.244.0.4` to `https://edge-poc.npanda.online` (`13.203.8.51:443`). TLS 1.3 and the Let's Encrypt certificate validated successfully and Caddy returned HTTP/2 `200`. The single-node control-plane taint required an explicit toleration for the diagnostic pod. |
+| 0.9 | Complete | Phase review completed. (1) Customer EDGE is behind corporate firewall/NAT, so AWS cannot initiate direct management connectivity. (2) The exact outbound connector/tunnel technology is intentionally not selected yet and will be evaluated in the secure-connectivity phase. (3) AWS must authenticate each EDGE identity, e.g. by validating an EDGE client certificate against a trusted signing CA. (4) Theft of an EDGE private key/certificate could allow an attacker to impersonate that EDGE. (5) Each EDGE must have a unique private key and certificate so compromise of one identity does not compromise the entire fleet. |
 
 ------------------------------------------------------------------------
 
