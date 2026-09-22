@@ -2285,3 +2285,170 @@ Resume with the interactive learning workflow from `AGENTS.md`. The
 first practical objective is to inspect the personal-laptop networking
 path and determine how EDGE-001 can reach a Docker WireGuard listener on
 UDP 51820 without modifying the healthy Talos underlay.
+
+
+---
+
+## 38. Local Network Map — Underlay, Overlay and WSL Access
+
+Before building the local Docker WireGuard gateway, the lab network paths
+were separated explicitly. The similar-looking `10.0.2.x` and
+`10.100.0.x` addresses belong to completely different networks.
+
+### IP and Port Map
+
+| Component | IP / Port | Layer | Purpose |
+| --- | --- | --- | --- |
+| EDGE-001 normal NIC | `10.0.2.15` | VirtualBox underlay | Existing Talos node address |
+| VirtualBox NAT gateway / host-access path | `10.0.2.2` | VirtualBox underlay | Address EDGE can use to reach services exposed by the laptop |
+| Talos API | `10.0.2.15:50000/TCP` | Current management path | Talos API before WireGuard management is enabled |
+| Kubernetes API | `10.0.2.15:6443/TCP` | Current management path | Kubernetes API before WireGuard management is enabled |
+| Local WireGuard endpoint | `10.0.2.2:51820/UDP` | WireGuard transport / underlay | Reachable endpoint EDGE uses to establish the tunnel |
+| EDGE WireGuard interface | `10.100.0.2` | WireGuard overlay | EDGE management address inside the private tunnel |
+| Gateway WireGuard interface | `10.100.0.1` | WireGuard overlay | Docker/AWS gateway address inside the private tunnel |
+
+Memory rule:
+
+```text
+10.0.2.x     = OUTSIDE the WireGuard tunnel / VirtualBox underlay
+10.100.0.x   = INSIDE the WireGuard tunnel / private overlay
+```
+
+The WireGuard peer endpoint and the WireGuard peer overlay address are
+different concepts:
+
+```text
+10.0.2.2:51820 = Where can EDGE reach the peer to create the tunnel?
+Public key      = Which WireGuard peer is EDGE cryptographically talking to?
+10.100.0.1      = How does EDGE address that peer after the tunnel exists?
+```
+
+### Complete Local Connectivity Model
+
+```mermaid
+---
+title: Local EDGE Network Paths
+---
+flowchart LR
+    W[WSL<br/>talosctl / kubectl]
+    S[socat]
+    H[Windows / VirtualBox<br/>Port Forwarding]
+    E[EDGE-001<br/>enp0s3 10.0.2.15]
+    V[VirtualBox NAT Gateway<br/>10.0.2.2]
+    D[Docker WireGuard<br/>UDP 51820]
+    EW[EDGE wg0<br/>10.100.0.2]
+    GW[Gateway wg0<br/>10.100.0.1]
+
+    W -->|TCP 50000 / 6443| S
+    S --> H
+    H -->|Current API access| E
+
+    E -->|UDP 51820 underlay| V
+    V -->|Docker host-port publish| D
+
+    EW <-->|WireGuard overlay| GW
+    D --- GW
+    E --- EW
+```
+
+There are three paths to keep conceptually separate.
+
+**1. Current WSL management path**
+
+```text
+WSL
+  |
+  | talosctl / kubectl
+  v
+socat
+  |
+  v
+Windows / VirtualBox forwarding
+  |
+  v
+EDGE 10.0.2.15
+  |- TCP 50000  Talos API
+  '- TCP 6443   Kubernetes API
+```
+
+`socat` is a lab access mechanism for WSL-to-VirtualBox communication.
+It is not part of WireGuard. It currently lets the management tools in
+WSL reach the EDGE APIs while preserving `10.0.2.15` as the destination
+identity used by the existing TLS configuration.
+
+**2. WireGuard underlay / bootstrap path**
+
+```text
+EDGE 10.0.2.15
+      |
+      | UDP 51820
+      v
+10.0.2.2:51820
+      |
+      | Docker host-port publishing
+      v
+Docker WireGuard gateway
+```
+
+The peer endpoint is therefore `10.0.2.2:51820` for the local PoC.
+The overlay address `10.100.0.1` cannot bootstrap the tunnel because it
+only becomes reachable after WireGuard is established.
+
+**3. WireGuard overlay path**
+
+```text
+EDGE wg0                         Gateway wg0
+10.100.0.2  <=================> 10.100.0.1
+                 WireGuard
+```
+
+The overlay is the intended private management network. After transport,
+routing and Talos TLS identity are proven independently, the target is to
+manage EDGE through `10.100.0.2` rather than depend on the local
+WSL/socat/VirtualBox forwarding workaround.
+
+### Underlay Reachability Proof
+
+Before changing Talos networking, a temporary HTTP listener was started
+on the laptop and EDGE connectivity was tested with a Talos debug
+container. The connection succeeded:
+
+```text
+Trying 10.0.2.2:18080...
+Established connection to 10.0.2.2 from 10.0.2.15
+HTTP/1.0 200 OK
+```
+
+This experimentally proves that EDGE-001 can reach a laptop-hosted
+service through `10.0.2.2`. Therefore `10.0.2.2:51820/UDP` is the
+correct local endpoint model for the next Docker WireGuard experiment.
+
+The temporary HTTP server exposed a directory containing sensitive Talos
+configuration files, so it must be stopped immediately after the
+reachability test. Talos machine configuration, `talosconfig`,
+`kubeconfig`, private keys and similar credentials must never be served,
+printed or committed.
+
+### Local-to-AWS Mapping
+
+The architecture remains the same when the gateway moves back to AWS.
+Only the reachable underlay endpoint changes:
+
+```text
+Local PoC:
+EDGE -> 10.0.2.2:51820 -> Docker WireGuard gateway
+
+AWS:
+EDGE -> boot.npanda.online:51820 -> EC2/Docker WireGuard gateway
+```
+
+The intended overlay addressing can remain:
+
+```text
+Gateway wg0  = 10.100.0.1
+EDGE-001 wg0 = 10.100.0.2
+```
+
+This separation is fundamental: the **underlay endpoint creates the
+tunnel**, while the **overlay addresses carry private management traffic
+after the tunnel exists**.
