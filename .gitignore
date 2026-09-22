@@ -21,3 +21,9 @@ crash.*.log
 # Talos and Kubernetes administrative credentials
 talosconfig
 kubeconfig
+
+
+# Track-2 EDGE generated artifacts and secrets
+labs/track-2-secure-edge/edge/generated/
+labs/track-2-secure-edge/edge/generated-mismatch/
+labs/track-2-secure-edge/edge/iso/
