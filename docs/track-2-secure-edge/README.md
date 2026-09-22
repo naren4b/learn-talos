@@ -1569,3 +1569,24 @@ API fundamentals.**
 
 Once those are understood, the enrollment service will have a clear
 purpose instead of becoming an unexplained custom component.
+
+
+### Practical PoC Checkpoint — Control Host Recovery
+
+- Control host: `track-2-poc-control`
+- EC2: `i-046a5eabd05b9b01e`
+- Region: `ap-south-1`
+- Administration verified through AWS Systems Manager Session Manager.
+- Docker verified active.
+- Caddy verified active.
+- `edge-poc.npanda.online` resolves to the control-host Elastic IP.
+- HTTPS bootstrap endpoint verified.
+- Terraform state recovered from the original workstation and transferred securely to the personal workstation.
+- Terraform state remains local and is excluded from Git.
+- EC2 public-IP association drift is ignored to prevent unintended replacement.
+- Existing EC2 key-pair public-key drift is ignored; SSM is the preferred administration path.
+- Port 80 is represented in Terraform for Caddy ACME/HTTPS redirect.
+- Final Terraform plan: **No changes**.
+- No infrastructure replacement or destructive Terraform operation was performed.
+
+Next: recreate `EDGE-001` cleanly in VirtualBox.

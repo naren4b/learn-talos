@@ -122,7 +122,13 @@ resource "aws_security_group" "control" {
     to_port     = 22
     cidr_blocks = [var.admin_cidr]
   }
-
+  ingress {
+    description = "HTTP for ACME validation and HTTPS redirect"
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   ingress {
     description = "HTTPS from edge networks"
     protocol    = "tcp"
@@ -145,8 +151,13 @@ resource "aws_security_group" "control" {
 resource "aws_key_pair" "admin" {
   key_name   = "track-2-poc-admin"
   public_key = file(pathexpand(var.ssh_public_key_path))
-}
 
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
+}
 resource "aws_iam_role" "ssm" {
   name = "track-2-poc-ssm-role"
 
@@ -215,6 +226,9 @@ resource "aws_instance" "control" {
   CLOUD_INIT
 
   lifecycle {
+    ignore_changes = [
+      associate_public_ip_address
+    ]
     precondition {
       condition     = var.root_volume_size_gib >= 40
       error_message = "The Phase 0 root volume must be at least 40 GiB."
