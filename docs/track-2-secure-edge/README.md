@@ -1663,3 +1663,72 @@ Resolution:
 We have now proven Talos ISO boot and maintenance mode, disk discovery, machine configuration, installation to disk, Talos PKI/authenticated API access, no-SSH administration, single-node etcd bootstrap, Kubernetes control-plane startup, and VirtualBox NAT behavior.
 
 Next: complete the remaining Phase 0 network-separation/outbound-HTTPS evidence, then move from local NAT forwarding to the Track-2 secure EDGE-to-control-plane connectivity/enrollment design.
+
+#### Errors Encountered and Troubleshooting Runbook
+
+| Symptom / Error | Root cause | Fix | Lesson |
+| --- | --- | --- | --- |
+| Talos stayed in `Booting`; node type/cluster initially appeared incomplete | Talos was already installed to the VDI, but VirtualBox kept booting from the installation ISO. Talos intentionally halted normal installed-node startup. | Power off the VM, detach the ISO, set the VDI as the first boot device, then boot again. | Verify the actual boot source before debugging PKI, etcd or Kubernetes. |
+| Talos log reported that Talos was already installed but booted from another media | Same installation-media problem above; `talos.halt_if_installed` protected the installed system. | Detach installation media and boot from disk. | Treat console/log evidence as the source of truth instead of assuming a TLS or configuration problem. |
+| Direct WSL connection to Talos address `10.0.2.15:50000` timed out | `10.0.2.15` belongs to the VirtualBox NAT network and is not directly routed from WSL. | Add VirtualBox NAT forwarding for TCP 50000 and forward a local WSL listener through the Windows/WSL gateway using `socat`. | VirtualBox NAT provides outbound connectivity but does not make the guest address directly reachable from WSL. |
+| Talos TLS validation failed when connecting through the Windows/WSL gateway address | The gateway address was not a SAN in the Talos server certificate, and the WSL gateway can change after restart. | Keep `10.0.2.15` as the Talos client destination and use a local loopback alias plus `socat` to carry the connection through the gateway. | Do not add an unstable workstation/NAT address to long-lived node identity merely to work around lab routing. |
+| Fresh `talosconfig` could not authenticate to a machine configured with an earlier generated configuration | Talos machine configuration and administrative client configuration were generated from different PKI sets. | Regenerate a consistent configuration set and apply the matching control-plane configuration while still in the appropriate maintenance/bootstrap state. | Treat generated Talos machine configs and `talosconfig` as one trust set. |
+| `kubectl` returned `dial tcp 10.0.2.15:6443: connect: connection refused` even though the Talos console showed the API server healthy | The WSL `socat` listener for Kubernetes TCP 6443 was no longer running. Only the Talos API listener on 50000 remained active. | Recreate the 6443 `socat` listener and verify it with `nc -vz 10.0.2.15 6443` before retrying `kubectl`. | Separate application health from access-path health. A healthy Kubernetes API can still be unreachable when a local lab proxy has stopped. |
+| Talos health reached Kubernetes checks but could not initially reach `10.0.2.15:6443` | Talos API forwarding existed for 50000, but the Kubernetes API needed its own 6443 forwarding path. | Configure VirtualBox NAT forwarding and the WSL `socat` listener for 6443 as well. | Talos API and Kubernetes API are separate endpoints and both require connectivity. |
+
+#### Lab Connectivity Troubleshooting Flow
+
+```mermaid
+---
+title: EDGE Lab Access Path
+---
+flowchart LR
+    A[WSL Tools] -->|10.0.2.15:50000 or 6443| B[socat]
+    B -->|Windows gateway| C[VirtualBox NAT]
+    C -->|Port forward| D[EDGE-001]
+    D --> E[Talos API :50000]
+    D --> F[Kubernetes API :6443]
+```
+
+When access fails, troubleshoot from left to right:
+
+1. Verify EDGE-001 is **Running / Ready** from the Talos console.
+2. Verify VirtualBox NAT forwarding still contains TCP 50000 and 6443.
+3. Verify WSL listeners with `ss -lntp | grep -E ':50000|:6443'`.
+4. Verify TCP access with `nc -vz 10.0.2.15 50000` and `nc -vz 10.0.2.15 6443`.
+5. Only after the network path is healthy, investigate Talos authentication or Kubernetes.
+
+#### Important: socat Is Ephemeral
+
+The WSL loopback alias and `socat` processes are **lab runtime state**. They do not survive all WSL restarts.
+
+After restarting WSL, recreate the local access path when required:
+
+```bash
+WIN_IP=$(ip route | awk '/default/ {print $3}')
+
+ip addr show dev lo | grep -q '10.0.2.15/32' || \
+  sudo ip addr add 10.0.2.15/32 dev lo
+
+socat TCP-LISTEN:50000,bind=10.0.2.15,reuseaddr,fork \
+  TCP:${WIN_IP}:50000 >/tmp/talos-50000.log 2>&1 &
+
+socat TCP-LISTEN:6443,bind=10.0.2.15,reuseaddr,fork \
+  TCP:${WIN_IP}:6443 >/tmp/talos-6443.log 2>&1 &
+```
+
+Verify before using `talosctl` or `kubectl`:
+
+```bash
+ss -lntp | grep -E ':50000|:6443'
+nc -vz 10.0.2.15 50000
+nc -vz 10.0.2.15 6443
+```
+
+These proxies are intentionally a **local PoC workaround**. They must not become the production design for EDGE-to-AWS management connectivity.
+
+#### Screenshot / Visual Evidence
+
+The interactive troubleshooting session used Talos console screenshots to confirm the transition from the failed boot state to the healthy state. Those chat screenshots are not stored as repository assets, so the repository does not currently embed them. The Mermaid access-path diagram above is the durable, source-controlled visual representation.
+
+If screenshots are added later, store only sanitized images under a documentation assets directory and ensure they contain no credentials, private keys, tokens or sensitive infrastructure data.
