@@ -1732,3 +1732,110 @@ These proxies are intentionally a **local PoC workaround**. They must not become
 The interactive troubleshooting session used Talos console screenshots to confirm the transition from the failed boot state to the healthy state. Those chat screenshots are not stored as repository assets, so the repository does not currently embed them. The Mermaid access-path diagram above is the durable, source-controlled visual representation.
 
 If screenshots are added later, store only sanitized images under a documentation assets directory and ensure they contain no credentials, private keys, tokens or sensitive infrastructure data.
+
+
+### Learning Checkpoint — Talos-Native WireGuard Design
+
+Before implementation, the secure management design was reviewed using architecture questions.
+
+#### Q1. Where should WireGuard run if Kubernetes may be broken?
+
+**Answer:** At the Talos host/network layer, not as a Kubernetes workload.
+
+The recovery path must not depend on the component being recovered.
+
+```mermaid
+---
+title: Recovery Path Independence
+---
+flowchart TD
+    A[EDGE Boots] --> B[Talos Networking]
+    B --> C[WireGuard Tunnel]
+    C --> D[Talos API :50000]
+    B --> E[Kubernetes]
+    E -->|May fail| F[Workloads]
+```
+
+#### Q2. Should 1,000 EDGE nodes share one WireGuard key?
+
+**Answer:** No. Each EDGE requires a unique WireGuard key pair. Compromise of one EDGE should allow that peer to be removed without rotating the other 999 identities.
+
+WireGuard key pairs are separate from the certificate/private-key identity used for enrollment or mTLS.
+
+#### Q3. Which side requires a publicly reachable WireGuard endpoint?
+
+**Answer:** The AWS WireGuard gateway. EDGE is behind customer firewall/NAT and initiates outbound UDP to AWS. EDGE does not require an inbound Internet endpoint.
+
+```mermaid
+---
+title: EDGE Initiates Tunnel
+---
+flowchart LR
+    A[EDGE-001 Behind NAT] -->|Outbound UDP| B[Internet]
+    B --> C[AWS WireGuard Endpoint]
+    C <-->|Encrypted Tunnel| A
+```
+
+#### Q4. What is `10.100.0.2`?
+
+**Answer:** It is an additional fixed management/overlay IP assigned to EDGE-001's WireGuard interface, not a replacement for its LAN/NAT IP `10.0.2.15`.
+
+Example PoC addressing:
+
+- AWS WireGuard: `10.100.0.1`
+- EDGE-001 WireGuard: `10.100.0.2`
+- EDGE-001 LAN/NAT: `10.0.2.15`
+
+WireGuard supplies the IP path; it is not an application proxy forwarding `10.100.0.2:50000` to `10.0.2.15:50000`.
+
+#### Q5. What about Talos API TLS SAN validation?
+
+If AWS manages Talos using `10.100.0.2:50000`, the Talos API certificate must be valid for the stable WireGuard management address. Otherwise network connectivity can succeed while TLS identity verification fails.
+
+**Principle:** network reachability does not equal trusted application connectivity. Do not solve SAN mismatch by disabling TLS verification.
+
+#### Q6. Who starts WireGuard after an EDGE reboot?
+
+Talos host networking does. The desired dependency chain is:
+
+```mermaid
+---
+title: EDGE Boot Recovery Path
+---
+flowchart TD
+    A[EDGE Power On] --> B[Talos Boots]
+    B --> C[Host Network]
+    C --> D[WireGuard Starts]
+    D --> E[Outbound Tunnel to AWS]
+    E --> F[Remote Talos API]
+    B --> G[Kubernetes]
+    G -->|Healthy or Failed| H[Cluster State]
+```
+
+This keeps the management/recovery channel independent of Kubernetes health.
+
+#### Q7. Where is the AWS WireGuard endpoint configured?
+
+In the Talos machine configuration for the WireGuard peer. Conceptually, EDGE-001 is configured with the AWS WireGuard public key and endpoint `13.203.8.51:51820`, plus an appropriate persistent keepalive for the NAT path. AWS holds the corresponding EDGE-001 public key and overlay address assignment.
+
+#### Q8. Is `10.100.0.2` fixed?
+
+For this design, yes: it is a stable address allocated specifically to EDGE-001. It is not a special WireGuard-defined address. At fleet scale, management IPs should be allocated centrally and mapped to EDGE identity and WireGuard public key.
+
+#### Q9. How far can overlay addressing scale?
+
+The capacity is determined by the chosen overlay CIDR. A `/24` is suitable only for a small PoC; a larger range such as a carefully selected `/16` provides much more address space for a 1,000-node fleet.
+
+Address count alone is not the architecture's scaling limit. Gateway throughput, peer count, availability, routing, operational management, failure domains and overlap with customer/AWS networks must also be designed. At larger scale, use gateway pools/sharding rather than treating one EC2 WireGuard gateway as an unlimited fleet endpoint.
+
+#### Implementation Checkpoint
+
+The next practical sequence is:
+
+1. Start the AWS control host while EDGE-001 remains powered off.
+2. Configure and validate the AWS WireGuard endpoint first.
+3. Generate unique WireGuard identity for EDGE-001.
+4. Configure Talos-native WireGuard and the stable management address.
+5. Ensure Talos API TLS identity is valid for the management path.
+6. Boot EDGE-001 and verify EDGE-initiated tunnel establishment.
+7. Verify Talos API management through the tunnel independently of Kubernetes.
