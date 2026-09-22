@@ -2146,3 +2146,142 @@ Establish EDGE -> AWS WireGuard handshake
 Validate Talos API TLS identity over 10.100.0.2
 Only then make the configuration persistent
 ```
+
+
+---
+
+## 37. Architecture Update — Local WireGuard Proof First
+
+The PoC execution plan changed after the first WireGuard experiment.
+
+The AWS Elastic IP is no longer part of the current PoC baseline. Rather
+than debug Talos networking and AWS Internet reachability at the same
+time, the WireGuard/Talos integration will first be proven locally on the
+personal laptop.
+
+### Revised Validation Strategy
+
+The laptop will temporarily simulate the AWS WireGuard gateway using a
+Docker-based WireGuard endpoint.
+
+```mermaid
+---
+title: Local WireGuard Proof
+---
+flowchart LR
+    A[EDGE-001<br/>Talos / VirtualBox]
+    B[Laptop Network Path]
+    C[Docker WireGuard Gateway<br/>10.100.0.1]
+    D[wg0<br/>10.100.0.2]
+
+    A -->|Existing underlay| B
+    B -->|UDP 51820| C
+    A --- D
+    D -. WireGuard overlay .-> C
+```
+
+This local phase is intended to isolate the Talos configuration problem
+from AWS-specific variables. It does not change the production direction:
+a customer EDGE must still be able to establish secure outbound
+connectivity while behind NAT/firewalls.
+
+### Phase 1 — Local Proof
+
+Before changing Talos, inspect and prove the actual path among
+VirtualBox, the laptop/WSL/Docker environment, and the temporary
+WireGuard gateway.
+
+The sequence is:
+
+```text
+Prove laptop/EDGE network path
+        ↓
+Start Docker WireGuard gateway
+        ↓
+Prove EDGE can reach the intended UDP/51820 path
+        ↓
+Verify Talos v1.13.4 additive network semantics
+        ↓
+Show sanitized Talos candidate before applying
+        ↓
+Preserve enp0s3 / 10.0.2.15 / default route
+        ↓
+Add wg0 / 10.100.0.2
+        ↓
+Verify WireGuard handshake
+        ↓
+Verify overlay routing and TCP
+        ↓
+Handle Talos API SAN/TLS identity separately
+        ↓
+Verify Talos API over the overlay
+```
+
+The Talos API SAN change should not be unnecessarily bundled with the
+first network mutation. Separating underlay preservation, WireGuard
+transport, and Talos API identity reduces blast radius and makes failures
+easier to attribute.
+
+### Phase 2 — Return to AWS
+
+Only after the local method is proven will the same validated pattern be
+moved back to an AWS EC2 WireGuard gateway.
+
+The intended long-lived EDGE configuration should use a stable DNS name
+for the gateway rather than embedding a changing EC2 public IP:
+
+```text
+boot.npanda.online:51820
+```
+
+Conceptually:
+
+```mermaid
+---
+title: Stable WireGuard Endpoint
+---
+flowchart LR
+    A[EDGE Fleet]
+    B[boot.npanda.online]
+    C[Current Public IP]
+    D[AWS WireGuard Gateway]
+
+    A -->|WireGuard endpoint| B
+    B -->|DNS resolution| C
+    C -->|UDP 51820| D
+```
+
+DNS provides a stable configuration name while allowing the public
+address behind that name to change. Before this is treated as a
+production recovery mechanism, the exact WireGuard implementation
+behavior for DNS resolution and endpoint re-resolution must be verified.
+DNS stability does not by itself guarantee that an already-running peer
+will immediately discover a changed address.
+
+### Decisions at This Checkpoint
+
+- The previous AWS Elastic IP is no longer assumed to exist or remain the
+  WireGuard endpoint.
+- Local Docker validation comes before another AWS attempt.
+- Do not involve `boot.npanda.online` in the first local transport test;
+  use the directly reachable laptop endpoint so DNS is not another
+  variable.
+- `boot.npanda.online` is the intended stable endpoint name when the
+  gateway returns to AWS.
+- The local Docker gateway is a test substitute for the AWS gateway, not
+  the final architecture.
+- Preserve `enp0s3`, `10.0.2.15`, the default route via
+  `10.0.2.2`, and the existing Talos API recovery path throughout the
+  experiment.
+- Do not repeat the previous multi-document Talos apply unchanged.
+- Prove the network path to the local WireGuard gateway before debugging
+  Talos WireGuard configuration.
+
+### Updated Safe Restart Point
+
+No implementation action is implied by this architecture update.
+
+Resume with the interactive learning workflow from `AGENTS.md`. The
+first practical objective is to inspect the personal-laptop networking
+path and determine how EDGE-001 can reach a Docker WireGuard listener on
+UDP 51820 without modifying the healthy Talos underlay.
