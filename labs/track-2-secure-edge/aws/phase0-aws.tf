@@ -136,7 +136,13 @@ resource "aws_security_group" "control" {
     to_port     = 443
     cidr_blocks = var.edge_https_cidrs
   }
-
+  ingress {
+    description = "WireGuard from edge networks"
+    protocol    = "udp"
+    from_port   = 51820
+    to_port     = 51820
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   egress {
     description = "Required for package downloads and outbound service calls"
     protocol    = "-1"
