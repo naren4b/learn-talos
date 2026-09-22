@@ -1839,3 +1839,310 @@ The next practical sequence is:
 5. Ensure Talos API TLS identity is valid for the management path.
 6. Boot EDGE-001 and verify EDGE-initiated tunnel establishment.
 7. Verify Talos API management through the tunnel independently of Kubernetes.
+
+
+------------------------------------------------------------------------
+
+## 36. Secure Connectivity Checkpoint — WireGuard Attempt 1
+
+**Status: PAUSED SAFELY — baseline recovered**
+
+This checkpoint records the first practical attempt to add a Talos-native
+WireGuard management path between EDGE-001 and the AWS control host. The
+attempt was intentionally stopped after a recoverable network failure so
+the behavior can be understood before another configuration change.
+
+### Baseline Before the Change
+
+The healthy EDGE-001 baseline was re-verified before the experiment:
+
+- Talos client/server: v1.13.4.
+- Talos API: authenticated and RBAC enabled.
+- Existing management/lab address: `10.0.2.15/24` on `enp0s3`.
+- VirtualBox NIC: NAT, cable connected.
+- VirtualBox forwards TCP 50000 for Talos API and TCP 6443 for Kubernetes API.
+- Kubernetes remained a healthy single-node control plane.
+- The current Talos configuration was exported locally for inspection and
+  recovery reference. It contains secrets and must never be committed.
+- EDGE-001 WireGuard private key is stored only in a protected local
+  temporary file with mode `600`; it must never be printed or committed.
+
+### AWS WireGuard Preparation
+
+The AWS control host was prepared first:
+
+- WireGuard host address: `10.100.0.1/24`.
+- UDP 51820 is the PoC WireGuard listener.
+- EDGE-001 was registered as a peer with overlay address
+  `10.100.0.2/32`.
+- EDGE-001 has a unique WireGuard key pair.
+- AWS stores only the EDGE public key for peer authentication.
+- The EDGE private key remains local to the EDGE preparation environment.
+- TCP 50000 is **not** exposed publicly.
+
+The PoC intentionally permits UDP 51820 from arbitrary Internet source
+addresses because a customer EDGE can appear behind an unknown NAT
+address. Peer authentication is performed by WireGuard keys. Production
+gateway policy, rate controls and failure-domain design remain future
+work.
+
+### Target Connectivity
+
+```mermaid
+---
+title: Secure EDGE Management Path
+---
+flowchart LR
+    A[EDGE-001] -->|Outbound UDP 51820| B[Customer NAT]
+    B --> C[Internet]
+    C --> D[AWS WireGuard Gateway]
+    A --- E[wg0 10.100.0.2]
+    D --- F[wg0 10.100.0.1]
+    F -->|Talos API over tunnel| E
+```
+
+The key architectural requirement remains: AWS does not initiate a
+connection to the EDGE private LAN address. EDGE establishes the secure
+outbound tunnel first.
+
+### Q&A Captured During the Design
+
+#### Q10. Is the current Kubernetes cluster the final zero-touch EDGE state?
+
+**Answer:** No. The current cluster is a baseline learning and validation
+environment. The target flow is that a newly booted EDGE establishes
+bootstrap trust/connectivity with the AWS control plane, is identified and
+authorized, receives its intended Talos configuration, and then converges
+to the desired Kubernetes state.
+
+#### Q11. Is EDGE-001 currently in Talos Maintenance Mode?
+
+**Answer:** No. Maintenance Mode was a temporary bootstrap/unconfigured
+state. EDGE-001 is now a configured Talos node running a Kubernetes
+control plane.
+
+#### Q12. Should every gateway use the entire fleet WireGuard CIDR?
+
+**Answer:** No. Reserve a sufficiently large fleet address space, then
+divide it into gateway pools/subnets or failure domains. Sharding can
+follow geography, tenant, capacity, availability zone or another
+operational boundary.
+
+```mermaid
+---
+title: WireGuard Fleet Sharding
+---
+flowchart TD
+    A[Fleet Overlay Address Space]
+    A --> B[Gateway Group A]
+    A --> C[Gateway Group B]
+    A --> D[Gateway Group C]
+    B --> E[EDGE Pool]
+    C --> F[EDGE Pool]
+    D --> G[EDGE Pool]
+```
+
+#### Q13. Does WireGuard replace Talos PKI?
+
+**Answer:** No. WireGuard provides an authenticated encrypted network
+tunnel using WireGuard key pairs. Talos still uses its own PKI and API
+identity. Production bootstrap identity, device enrollment and private PKI
+remain separate design concerns.
+
+#### Q14. Can the management CIDR change later?
+
+**Answer:** Yes, but expansion that preserves existing addresses is easier
+than renumbering. Renumbering can affect WireGuard addresses and
+AllowedIPs, Talos certificate SANs, inventory/IPAM, routes, firewall
+policy and monitoring. A production migration should prefer an explicit
+transition such as temporary dual addressing where supported.
+
+#### Q15. Can an EDGE move between WireGuard gateway groups?
+
+**Answer:** Yes. Gateway assignment should not become the permanent EDGE
+identity. Preserve device identity and, where practical, its stable
+management address while changing gateway ownership/routing. Prefer a
+stable gateway service/DNS endpoint over embedding an EC2 instance IP in
+long-lived fleet configuration.
+
+#### Q16. Why add `10.100.0.2` to the Talos API SANs?
+
+**Answer:** A working WireGuard route is not enough. If `talosctl`
+connects to `10.100.0.2:50000`, the Talos API certificate must be valid
+for that management identity. The correct solution is valid identity/SAN
+configuration, not disabling TLS verification.
+
+### Configuration Preparation
+
+The running machine configuration was inspected without exposing its
+private PKI material. It showed:
+
+- `machine.certSANs: []` before the experiment.
+- No legacy `machine.network` block in the extracted primary
+  MachineConfig.
+- A separate existing `HostnameConfig` document.
+- No `wg0` link before the experiment.
+
+A candidate configuration was prepared locally with:
+
+- existing MachineConfig;
+- `10.100.0.2` added to `machine.certSANs`;
+- existing HostnameConfig preserved;
+- a separate `WireguardConfig` for `wg0`.
+
+The candidate passed:
+
+```text
+talosctl validate --config <candidate> --mode metal
+<candidate> is valid for metal mode
+```
+
+**Important lesson:** schema validation proves that the configuration is
+valid Talos syntax. It does **not** prove that replacing the active
+configuration preserves all effective runtime networking.
+
+### Failed Attempt — What Happened
+
+The candidate was applied with Talos `try` mode and a three-minute
+rollback timeout.
+
+Immediately after the apply:
+
+- Talos reported that the configuration was applied without reboot.
+- The Talos console changed from `10.0.2.15` to **IP: n/a**.
+- DNS checks reported `network is unreachable`.
+- Remote Talos API access through the existing lab path timed out during
+  the TLS/authentication handshake.
+- The Kubernetes processes already running locally were not sufficient to
+  provide a usable management network.
+- The expected automatic rollback did not restore remote connectivity
+  while the machine remained running.
+- A controlled VM reboot restored the persisted working configuration.
+- After reboot, `10.0.2.15` returned and authenticated
+  `talosctl version` again reported Talos v1.13.4 with RBAC enabled.
+
+### Failure Visual
+
+```mermaid
+---
+title: WireGuard Attempt 1 Failure
+---
+flowchart TD
+    A[Healthy EDGE 10.0.2.15]
+    B[Apply Validated Multi-Document Config]
+    C[Effective Base Network Lost]
+    D[Console Shows IP n/a]
+    E[DNS Network Unreachable]
+    F[Talos API Unreachable]
+    G[Try Timeout Expires]
+    H[Connectivity Still Not Restored]
+    I[Controlled VM Reboot]
+    J[Persisted Baseline Restored]
+    K[10.0.2.15 and Talos API Healthy]
+
+    A --> B --> C
+    C --> D
+    C --> E
+    C --> F
+    D --> G
+    E --> G
+    F --> G
+    G --> H --> I --> J --> K
+```
+
+### Baseline Routing Evidence After Recovery
+
+After reboot, Talos again reported:
+
+```text
+enp0s3    10.0.2.15/24
+network   10.0.2.0/24 via enp0s3
+default   via 10.0.2.2 on enp0s3
+```
+
+This proves the base VirtualBox NAT path was restored. The next attempt
+must preserve this path while **adding** WireGuard.
+
+```mermaid
+---
+title: Required Additive Network Change
+---
+flowchart LR
+    A[enp0s3 10.0.2.15] --> B[Default via 10.0.2.2]
+    B --> C[VirtualBox NAT]
+    D[wg0 10.100.0.2] --> E[AWS wg0 10.100.0.1]
+    A -. must remain .-> D
+```
+
+### Troubleshooting Additions
+
+| Symptom / Error | Observation / Root Cause | Recovery / Fix | Lesson |
+| --- | --- | --- | --- |
+| TCP 50000/6443 accepted connections but TLS/application traffic stalled after an EDGE restart | VirtualBox NAT port-forwarding path was present but application bytes were not reaching the guest correctly. Windows localhost tests showed the same behavior, ruling out only WSL/socat as the cause. | Stop/restart EDGE-001 cleanly in VirtualBox GUI mode. After restart, Talos API v1.13.4 became reachable again. | A successful TCP connect does not prove end-to-end application connectivity. Test at TCP, TLS and application layers. |
+| `talosctl` timed out during authentication handshake although TCP 50000 was reachable | Same broken forwarding/application path above. | Reboot/restart restored the VirtualBox NAT forwarding behavior. | Separate transport acceptance from successful TLS/mTLS exchange. |
+| `yq '.machine.network'` returned `null` | The exported Talos configuration is multi-document and the primary MachineConfig has no legacy `machine.network` section. | Inspect document structure first and use the configuration model appropriate to Talos v1.13. | Do not assume older Talos machine-config structure on a newer release. |
+| Candidate configuration passed `talosctl validate` but EDGE lost `enp0s3` address after apply | Structural validity did not guarantee preservation of the effective automatically established base network state. | Allow the experiment to fail safely; reboot restored the persisted baseline. Do not repeat the same replacement-style apply. | Validation is necessary but not sufficient for safe network mutation. Preserve the working underlay explicitly or use a supported additive mechanism. |
+| `--mode=try --timeout=3m` did not restore reachable networking within the observed timeout | The trial configuration removed the usable management path; the expected live rollback was not sufficient to recover remote access in this experiment. | Controlled reboot restored the persisted working configuration. | Never treat try mode as the only recovery plan for remote network changes. Maintain console/out-of-band access and a known-good persisted state. |
+
+### Screenshot Evidence and Safety
+
+Two Talos console screenshots from the failed trial showed the diagnostic
+state: **IP: n/a** and repeated DNS/network-unreachable errors. They were
+used as evidence during troubleshooting. The repository keeps the
+sanitized Mermaid reconstructions above as durable visual documentation.
+
+Raw chat screenshots and generated Talos machine configuration are not
+committed because screenshots/configuration can unintentionally expose
+environment details, tokens, keys or certificates. Any future screenshot
+asset should be reviewed and sanitized before being added under a
+documentation assets directory.
+
+### Lessons Learned
+
+1. Preserve the underlay before adding an overlay. WireGuard is additive;
+   `enp0s3`, DHCP/default routing and the existing recovery path must
+   remain functional.
+2. Talos configuration documents can be syntactically valid while still
+   causing an operational network outage.
+3. Do not reconstruct and replace the full running configuration merely
+   to add one network feature until the exact Talos v1.13 merge/apply
+   semantics are understood.
+4. `--mode=try` reduces risk but does not replace console access,
+   persisted known-good configuration and a reboot/recovery plan.
+5. Never debug only at the TCP layer. Verify TCP → TLS/mTLS → Talos API.
+6. Keep WireGuard identity, Talos PKI identity and future enrollment
+   identity conceptually separate.
+7. Never print, paste or commit EDGE private keys, Talos machine secrets,
+   `talosconfig` or kubeconfig.
+8. The production goal remains zero-touch: the current manually built
+   Kubernetes cluster is only the learning baseline.
+
+### Safe Pause Point
+
+At the end of this session:
+
+- EDGE-001 is healthy again on `10.0.2.15`.
+- Talos API authentication works.
+- Kubernetes baseline remains intact.
+- AWS WireGuard gateway preparation is retained.
+- EDGE WireGuard private material remains local and protected.
+- WireGuard has **not** been accepted as a persistent EDGE configuration.
+- No second WireGuard apply should be attempted until the Talos v1.13
+  additive networking/configuration behavior is understood.
+
+### Next Session
+
+Resume from **Talos v1.13 additive network configuration research**.
+
+The next practical change must satisfy all of these conditions before it
+is applied:
+
+```text
+Keep enp0s3 / 10.0.2.15
+Keep default route via 10.0.2.2
+Keep console/recovery access
+Add wg0 / 10.100.0.2
+Establish EDGE -> AWS WireGuard handshake
+Validate Talos API TLS identity over 10.100.0.2
+Only then make the configuration persistent
+```
