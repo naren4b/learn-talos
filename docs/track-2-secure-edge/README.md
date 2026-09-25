@@ -2821,3 +2821,111 @@ Next theory topic:
 
 The practical WireGuard lab remains paused until the theory track is
 complete.
+
+
+---
+
+## 40. Day-2 Operations — Fleet Rollout, Recovery and Data Durability
+
+The practical WireGuard lab remains paused while the theory-first interview track continues.
+
+### Upgrade campaigns and maintenance windows
+
+Manage upgrades as lifecycle campaigns rather than forcing every EDGE immediately:
+
+Release approved -> campaign announced -> support/EOL timeline -> customer-approved maintenance window -> EDGE eligible -> progressive rollout -> health validation -> completion/EOL.
+
+Not mandatory immediately does not mean optional forever. Critical security issues may require an expedited policy.
+
+### Progressive rollout and health gates
+
+Even a standardized fleet should not upgrade simultaneously. Use lab/test, small canary, health gates and soak, then progressively larger production batches.
+
+An upgrade is successful only after Talos/API management connectivity, WireGuard where used, etcd on control-plane nodes, kube-apiserver, kubelet, required Kubernetes networking, Node Ready, critical workloads, and customer-facing connectivity are healthy.
+
+If a batch breaches the agreed failure threshold, automatically pause the campaign. Investigate whether failures are site-specific or release-related before resuming.
+
+### Recovery hierarchy and OOB
+
+WireGuard is an alternate secure management path while the OS/network stack is alive; it is not true out-of-band management.
+
+Recovery hierarchy:
+
+Normal management -> WireGuard + Talos API -> automated self-recovery/known-good boot -> OOB/BMC -> customer-assisted recovery -> replace appliance -> field engineer when justified.
+
+OOB means Out-of-Band management. A BMC can provide OS-independent power control, Serial-over-LAN/remote console, boot-device selection and virtual recovery media.
+
+Whether every low-cost EDGE needs sophisticated OOB is a TCO/SLA decision: compare added hardware, operations and security cost with failure probability, downtime, support cost and field-visit cost. Customer-assisted recovery and appliance replacement remain fallback paths.
+
+A/B or known-good boot images are a useful general edge-appliance recovery pattern, but exact Talos rollback behavior must be verified for the applicable Talos release before treating it as a native capability.
+
+### Configuration rollout
+
+Treat Talos configuration changes with the same safety discipline: versioned config -> canary -> management/Kubernetes/workload/customer-connectivity gates -> soak -> progressive batches -> automatic pause on failure.
+
+A configuration can be schema-valid and Kubernetes can be healthy while customer connectivity is broken. Operational safety requires service-level validation.
+
+### SCM, inventory and desired state
+
+Keep versioned configuration artifacts in SCM such as Git. Inventory references versions rather than storing hundreds of manually maintained copies.
+
+Git/SCM answers WHAT the configuration is. Inventory answers WHICH configuration an EDGE should run, together with customer/site, identity, lifecycle and health state. A reconciliation controller compares desired and observed versions.
+
+If desired=v5 and observed=v4, reconcile toward v5 subject to rollout/safety policy. Retries must be bounded. Repeated health-gate failures should stop automatic reconciliation, mark the EDGE degraded and escalate rather than create an endless retry loop.
+
+### Hardware replacement and identity
+
+For replacement: revoke the old device identity; register new hardware/TPM identity; update inventory; issue fresh operational and WireGuard credentials; reconcile the desired Talos/Kubernetes/application state. Never copy the failed device's old private identity to replacement hardware.
+
+### Infrastructure recovery vs data recovery
+
+Desired-state automation can reconstruct Talos, Kubernetes, credentials and applications, but cannot reconstruct business data that existed only on a failed local disk/hostPath PV.
+
+Key principle: infrastructure reconstruction and data recovery are separate problems.
+
+For important local data, use periodic and/or on-demand backup to central storage or an HA location. For sites that must work while disconnected, provide a recoverable local copy outside the failed EDGE box where justified, then synchronize centrally when connectivity returns.
+
+### RPO and RTO
+
+RPO asks how much data loss the business can tolerate. RTO asks how long the service can remain unavailable.
+
+If the last backup is 02:00 and hardware fails at 14:00, the recovery point is 02:00 and up to 12 hours of data may be lost.
+
+RTO includes failure detection, replacement availability, ZTP/enrollment, Talos/Kubernetes/application recovery, data transfer/restore and service validation.
+
+If RPO <= 15 minutes while a site can be disconnected for 2-3 days, central backup alone cannot maintain a 15-minute off-site recovery point during the outage. Local durability can protect against individual EDGE failure, but complete site failure can exceed off-site RPO. This constraint must be explicit.
+
+### Disconnected storage capacity and runway
+
+Design storage around the maximum expected offline period. Use retention policies for bounded metrics/log/search data, capacity alerts, growth-rate monitoring and storage runway.
+
+Example: 30 GB free at 10 GB/day growth gives about 3 days of runway.
+
+Before 100% utilization, progressively shed or backpressure lower-value data. Business-critical customer data must not simply be deleted; define prioritization, reserved capacity, safe write rejection or degraded-service behavior.
+
+### Parked topic — Juniper SRX and customer networking
+
+Cover separately in this series: SRX routing, firewall/NAT policy, segmentation, outbound WireGuard connectivity, and the boundary between customer networking and platform management.
+
+### Current Day-2 mental model
+
+Campaign + maintenance window -> canary/batches -> health gates/soak -> automatic pause -> recovery hierarchy -> versioned config in SCM -> inventory desired/observed state -> bounded reconciliation -> replacement/new identity -> backup/restore -> RPO/RTO -> disconnected storage/runway -> centralized fleet observability.
+
+### Resume point
+
+Next question: With 500 EDGE devices, how should centralized monitoring identify which sites actually require operator attention without producing hundreds of low-value per-device alerts?
+
+### Remaining Day-2 topics
+
+1. Central fleet observability, aggregation, alert routing and noise reduction.
+2. Fleet health/SLO views and heartbeat/offline-state handling.
+3. Backup restore testing and recovery validation.
+4. etcd/control-plane backup and recovery where applicable.
+5. Kubernetes/Talos version compatibility and lifecycle sequencing.
+6. Routine certificate/key rotation.
+7. EDGE decommissioning, secure wipe and retirement.
+8. Fleet failure domains, concurrency limits and regional/customer segmentation.
+9. Break-glass and disaster-recovery procedures.
+10. Final production architecture and interview-level summary for 100-1,000+ EDGE nodes without Omni.
+
+After theory is complete, return to the paused WireGuard/Talos lab with a safer deterministic management-underlay design.
