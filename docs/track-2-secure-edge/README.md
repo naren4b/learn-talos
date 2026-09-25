@@ -2929,3 +2929,77 @@ Next question: With 500 EDGE devices, how should centralized monitoring identify
 10. Final production architecture and interview-level summary for 100-1,000+ EDGE nodes without Omni.
 
 After theory is complete, return to the paused WireGuard/Talos lab with a safer deterministic management-underlay design.
+
+
+---
+
+## 41. EDGE Platform Recipe Inventory
+
+This section turns the architecture into an inventory of concrete ingredients. Each ingredient should answer:
+
+**What is it? -> Where does it live? -> For whom? -> Why is it needed? -> What architectural problem does it solve? -> How significant is it? -> What is its lifecycle?**
+
+### Inventory categories
+
+1. Network and IP
+2. Identity and certificates
+3. Software
+4. Automation and scripts
+5. Architectural patterns
+6. Inventory and data
+7. Observability
+8. Policies and lifecycle
+
+| Category | Item | Where | For whom | Why | Architectural problem solved | Significance | Lifecycle |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Network | EDGE underlay IP | Customer site | EDGE/Talos | Normal site connectivity | Underlay networking | Critical | Assigned/discovered -> monitored -> released on retirement |
+| Network | WireGuard overlay IP | EDGE + gateway | Operations | Private management address | Secure remote management | Critical | Allocate per EDGE -> track in inventory -> revoke/reuse by policy |
+| Network | WireGuard public endpoint | Central/DC | EDGE fleet | Allow outbound tunnel establishment through NAT/firewall | Remote connectivity | Critical | Publish -> monitor -> rotate/migrate endpoint safely |
+| Network | DNS/NTP | Customer/central | Talos/Kubernetes | Name resolution and trusted time | Platform operation and PKI | Critical | Configure -> monitor -> change through controlled rollout |
+| Identity/Certificate | Factory/device identity | TPM/EDGE | Enrollment service | Prove initial machine identity | Trust bootstrap | Critical | Provision -> attest/use for enrollment -> revoke/retire |
+| Identity/Certificate | Operational EDGE certificate | EDGE | Control platform | Authenticate trusted EDGE | Day-2 identity | Critical | Issue -> renew -> rotate -> revoke |
+| Identity/Certificate | Talos PKI | EDGE/control plane | talosctl + Talos API | mTLS administration | Secure OS management | Critical | Bootstrap -> rotate -> revoke/rebuild according to Talos lifecycle |
+| Identity/Certificate | Kubernetes PKI | EDGE cluster | Kubernetes components/admins | Secure Kubernetes control plane | Cluster security | Critical | Bootstrap -> monitor expiry -> rotate/renew |
+| Identity/Certificate | WireGuard key pair | EDGE + gateway | WireGuard peers | Authenticate tunnel peers | Secure overlay | Critical | Generate uniquely -> distribute public key -> rotate/revoke |
+| Identity/Certificate | Factory Sub-CA | Protected central PKI | Factory/device identity | Establish factory trust domain | Trust-domain separation | Critical | Create under Root CA -> controlled issuance -> rotate/distrust |
+| Identity/Certificate | Operations Sub-CA | Central PKI | EDGE fleet | Issue operational identities | Credential lifecycle | Critical | Create -> issue/renew -> rotate -> revoke/distrust on compromise |
+| Software | Talos | EDGE | Kubernetes platform | Immutable API-managed host OS | Secure host lifecycle | Critical | Approved version -> campaign -> upgrade -> EOL |
+| Software | Kubernetes | EDGE | Applications/platform | Workload orchestration | Application platform | Critical | Version policy -> staged upgrade -> support/EOL |
+| Software | WireGuard | EDGE + gateway | Operations | Secure management overlay | NAT-friendly remote management | Critical | Deploy -> monitor -> upgrade -> retire |
+| Software | Fleet controller | Central | Operations | Reconcile desired and observed state | Fleet management | Critical | Deploy -> HA/upgrade -> continuously reconcile |
+| Software | Inventory service | Central | Platform/Ops | Map device, customer, site, identity and state | Fleet source of assignment | Critical | Create record -> update state -> revoke/retire -> retain audit history |
+| SCM | Git | Central | Platform engineering | Version configuration and automation | Desired-state/version control | Critical | Commit/review -> release/tag -> retain known-good history |
+| Automation | ZTP/bootstrap workflow | Factory/central | New EDGE | Rack -> cable -> power-on provisioning | Zero-touch provisioning | Critical | Build/test -> execute per device -> version/update |
+| Automation | Enrollment workflow | EDGE + central | New EDGE | Establish initial trust and operational identity | Trust bootstrap | Critical | Authenticate -> verify -> issue identity -> audit |
+| Automation | Health validation | Central + EDGE | Rollout controller | Determine rollout success | Safe deployment | Critical | Define gates -> evaluate per rollout -> evolve with SLOs |
+| Automation | Backup/restore | EDGE + central/HA storage | Stateful workloads | Recover persistent data | DR/data durability | Critical when stateful | Schedule/sync -> verify backup -> restore-test -> expire by policy |
+| Pattern | Desired-state reconciliation | Central | Fleet controller | Correct desired vs observed drift | Configuration consistency | Critical | Continuously compare -> bounded reconcile -> escalate failures |
+| Pattern | Canary/progressive rollout | Central | Fleet | Limit blast radius | Safe upgrades/config changes | Critical | Canary -> soak -> batches -> complete/pause |
+| Pattern | Health gates | EDGE + central | Rollout controller | Validate before promotion | Failure containment | Critical | Evaluate at each stage -> stop on threshold breach |
+| Pattern | Maintenance window | Inventory/control plane | Customer/Ops | Control disruptive changes | Operational governance | High | Define -> approve -> execute -> audit |
+| Pattern | Bounded retries | Controller | EDGE | Avoid endless failed reconciliation | Failure containment | High | Retry within policy -> stop -> mark degraded -> escalate |
+| Pattern | OOB recovery | BMC/customer network | Operations/customer | Recover when OS/network management is unavailable | Break-glass recovery | TCO/SLA dependent | Provision -> secure/monitor -> use during failure -> retire |
+| Pattern | Short-lived identity | EDGE/PKI | Fleet | Limit stolen credential lifetime | Credential security | High | Issue -> renew early -> expire/revoke |
+| Pattern | Sub-CA separation | Central PKI | Security/platform | Limit CA compromise blast radius | PKI isolation | Critical | Separate trust domains -> rotate independently -> recover independently |
+| Data | Fleet inventory | Central | Controller/Ops | Track EDGE/customer/site/desired/observed state | Fleet lifecycle | Critical | Register -> reconcile/update -> revoke/retire -> audit retention |
+| Data | Local persistent data | EDGE/site storage | Application | Continue operation while disconnected | Application state | Workload dependent | Write -> protect/replicate -> retain -> restore/delete by policy |
+| Data | Central backup | DC/cloud | DR | Restore failed/replaced EDGE | Data recovery | Critical when stateful | Ingest -> verify -> retain -> restore-test -> expire |
+| Observability | Heartbeat | EDGE -> central | Operations | Determine availability/reachability | Fleet health | Critical | Emit -> aggregate -> detect missing heartbeat -> alert/state transition |
+| Observability | Metrics/logs | EDGE -> central | SRE/Ops | Diagnose health and failures | Day-2 operations | Critical | Collect -> buffer -> transmit -> retain/rotate |
+| Policy | Retention/runway | EDGE | Platform | Survive WAN outage without filling storage | Storage protection | Critical | Set thresholds -> monitor growth/runway -> shed/backpressure by priority |
+| Policy | Upgrade campaign/EOL | Central | Customer/Ops | Govern software lifecycle | Fleet lifecycle | High | Available -> recommended -> maintenance -> deadline/EOL -> unsupported |
+| Policy | Revocation | Inventory/PKI/WireGuard | Security/Ops | Disable stolen/compromised/retired EDGE | Compromise containment | Critical | Mark revoked -> reject identity -> remove peer/access -> preserve audit trail |
+
+### Lifecycle lens
+
+The lifecycle column is deliberately included because possessing an ingredient is not enough for a production platform. The architecture must define who creates it, how it changes, how it is rotated or renewed, and how it is safely destroyed or revoked.
+
+This is particularly important for certificates, WireGuard keys, configuration versions, device identities, software releases and backups.
+
+### Interview mental model
+
+When asked how the EDGE platform is actually built, move through:
+
+Network/IP -> Identity/Certificates -> Software -> Automation -> Patterns -> Inventory/Data -> Observability -> Policies/Lifecycle.
+
+This bridges high-level architecture and implementation without prematurely dropping into low-level commands.
