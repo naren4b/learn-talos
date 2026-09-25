@@ -2452,3 +2452,372 @@ EDGE-001 wg0 = 10.100.0.2
 This separation is fundamental: the **underlay endpoint creates the
 tunnel**, while the **overlay addresses carry private management traffic
 after the tunnel exists**.
+
+---
+
+## 39. Theory Checkpoint — ZTP, Trust Bootstrap and PKI Lifecycle
+
+The practical WireGuard lab is intentionally paused while the remaining
+architecture and interview theory is completed. The current theory goal is
+to answer a larger production question:
+
+> How can a new remote edge machine become a trusted, managed Kubernetes
+> node without requiring an engineer to configure it manually?
+
+### Zero-Touch Provisioning Goal
+
+For a large edge fleet, the desired customer-site experience is:
+
+```text
+Rack -> Cable -> Power On
+             |
+             v
+        Discover bootstrap service
+             |
+             v
+        Establish trust
+             |
+             v
+       Receive identity/config
+             |
+             v
+        Join managed platform
+```
+
+The important lesson is that zero-touch provisioning is not simply
+automated configuration delivery. Before sensitive configuration or
+credentials are issued, the platform needs a trustworthy answer to:
+
+> Who is this machine, and should I trust its current state?
+
+### Inventory Identity vs Cryptographic Identity
+
+Factory inventory may initially associate a device with identifiers such
+as its serial number or MAC address:
+
+```text
+MAC / Serial
+     |
+     v
+Inventory record
+     |
+     v
+EDGE-001 -> customer / site / expected hardware
+```
+
+These identifiers are useful for inventory and correlation, but a MAC
+address is not strong proof of identity because it can be observed and
+spoofed.
+
+A stronger model gives each device a cryptographic identity, ideally
+anchored to hardware.
+
+```text
+Inventory identifier
+       |
+       v
+TPM-backed device identity
+       |
+       v
+Device certificate
+       |
+       v
+Factory CA / Sub-CA trust
+```
+
+### Device Identity and TPM
+
+A certificate proves possession of a corresponding private key, but a
+private key stored as an ordinary exportable file could be copied.
+
+A TPM-backed key improves the desired property:
+
+> The identity should belong to this physical device, not merely to files
+> copied from its disk.
+
+The resulting mental model is:
+
+```text
+MAC / serial -> Which device claims to be connecting?
+Certificate  -> Can it cryptographically prove an identity?
+TPM          -> Is that identity anchored to the intended hardware?
+```
+
+### Identity Is Not Enough — Verify Boot State
+
+A genuine device could still boot modified or unauthorized software.
+Therefore device identity and software/platform trust are separate
+questions.
+
+```text
+Is this the genuine EDGE-001?
+        |
+        +-> TPM-backed device identity / certificate
+
+Is EDGE-001 running an approved boot chain?
+        |
+        +-> Secure Boot + measured boot / attestation
+```
+
+Secure Boot controls which appropriately signed boot software is allowed
+to execute. Remote attestation provides evidence to a central verifier
+about the measured state that actually booted.
+
+This gives the conceptual enrollment chain:
+
+```text
+Factory inventory
+       |
+TPM-backed identity
+       |
+Signed / approved boot chain
+       |
+Secure Boot
+       |
+Measured boot / attestation
+       |
+Central verifier
+       |
+Trust established
+       |
+Issue operational identity
+```
+
+### Factory Identity vs Operational Identity
+
+The long-lived factory/device identity should not necessarily be the same
+credential used for normal operations.
+
+Two separate questions are being answered:
+
+- **Factory identity:** Who are you initially, and are you an enrolled
+  physical device?
+- **Operational identity:** Now that you are trusted, what are you allowed
+  to do?
+
+After successful verification, each EDGE should receive its own
+operational identity rather than sharing fleet-wide credentials.
+
+Example inventory state:
+
+```text
+EDGE-001
+|- Customer / Site
+|- Serial / MAC
+|- TPM identity
+|- Certificate identity
+|- Expected software / boot state
+|- WireGuard identity
+'- Lifecycle status: Active / Revoked / Retired
+```
+
+Per-device identity provides independent authentication, authorization,
+rotation and revocation.
+
+### Stolen or Compromised EDGE
+
+If EDGE-001 is stolen, the response should isolate that device without
+requiring credential changes on the rest of the fleet.
+
+Conceptually:
+
+```text
+EDGE-001 stolen
+      |
+Inventory -> REVOKED
+      |
+Reject / revoke EDGE-001 operational identity
+      |
+Remove its WireGuard peer / key
+      |
+Remove or disable platform authorization
+      |
+EDGE-001 can no longer establish normal trusted access
+```
+
+MAC filtering can be used as defense-in-depth, but it should not be the
+primary security boundary. Likewise, a certificate SAN is an identity
+attribute; the security action is to revoke, reject or otherwise disable
+the compromised credential/identity rather than treating the SAN itself
+as the revocation mechanism.
+
+### Short-Lived Credentials and Renewal
+
+A stolen device may be offline when it is revoked. It can later return
+with a locally stored certificate that still looks valid. This motivates
+limited credential lifetime plus controlled renewal.
+
+Heartbeat and credential renewal solve different problems:
+
+- **Heartbeat:** Is the EDGE alive/reachable?
+- **Credential renewal:** Is the EDGE still trusted and authorized?
+
+A renewal service can evaluate the current inventory state and trust
+policy before issuing another certificate.
+
+```text
+EDGE requests renewal
+        |
+        v
+Authenticate existing identity
+        |
+        v
+Check inventory / revocation / policy
+        |
+    +---+---+
+    |       |
+ Active   Revoked
+    |       |
+    v       v
+ Renew    Reject
+```
+
+Certificate lifetime is an architecture trade-off. Very short lifetimes
+reduce the useful lifetime of stolen credentials but make continued edge
+operation more dependent on the central identity service. Long lifetimes
+improve disconnected operation but increase exposure after compromise.
+
+For an edge environment that may lose Internet connectivity for two or
+three days, a useful design direction is a certificate valid for several
+days, for example seven days, while attempting renewal much earlier. The
+exact lifetime is a policy decision based on threat model, outage
+tolerance and recovery requirements rather than a universal value.
+
+### CA Hierarchy and Blast-Radius Isolation
+
+Do not use one signing authority indiscriminately for factory identity,
+operations and platform administration. Separate trust domains with
+subordinate CAs.
+
+```text
+                   Offline Root CA
+                        |
+          +-------------+-------------+
+          |             |             |
+          v             v             v
+     Factory CA    Operations CA   Platform CA
+          |             |             |
+    Device identity   EDGE certs   Talos / K8s PKI
+```
+
+Benefits include:
+
+- smaller compromise blast radius;
+- independent certificate policies and lifetimes;
+- independent rotation and revocation;
+- separation of factory trust from day-to-day operational trust.
+
+The root CA should remain highly protected and preferably offline where
+the operational model permits it. Day-to-day issuance belongs to the
+appropriate subordinate signing infrastructure.
+
+### Operations Sub-CA Compromise
+
+A compromised Operations Sub-CA is a fleet-level incident because an
+attacker may be able to mint apparently valid operational identities.
+
+Recovery should preserve unaffected trust domains:
+
+```text
+Offline Root CA
+      |
+      +-> Factory CA -> TPM/device identity       still trusted
+      |
+      '-> Operations CA                           compromised
+                    |
+                    v
+              Revoke / distrust
+                    |
+                    v
+              Operations CA v2
+                    |
+                    v
+       Re-authenticate legitimate devices
+       using independent factory identity
+                    |
+                    v
+          Issue new operational certs
+```
+
+Routine CA rotation is good lifecycle hygiene, but compromise recovery
+also requires distrusting the compromised authority, establishing a new
+authority, distributing the new trust chain, and re-issuing operational
+credentials to legitimate devices.
+
+### Current Trust-Bootstrap Mental Model
+
+The theory now forms one continuous chain:
+
+```text
+ZTP
+ |
+Factory inventory
+ |
+Device identity
+ |
+TPM-backed proof
+ |
+Secure Boot
+ |
+Measured boot / attestation
+ |
+Trust decision
+ |
+Unique operational identity
+ |
+Short-lived certificate + renewal
+ |
+Per-device revocation
+ |
+CA hierarchy / compromise recovery
+ |
+Day-2 operations
+```
+
+### Interview-Level Takeaways
+
+1. MAC addresses and serial numbers are inventory identifiers, not strong
+   cryptographic proof.
+2. Device certificates provide cryptographic identity; TPM-backed keys
+   strengthen hardware binding and anti-cloning.
+3. A genuine machine identity does not prove that trusted software
+   booted. Secure Boot and attestation address a different part of the
+   trust problem.
+4. Factory identity and operational identity should be separated.
+5. Every EDGE should have a unique operational identity so one compromised
+   device can be revoked without rotating the entire fleet.
+6. Credential expiry and renewal reduce the useful lifetime of stolen
+   credentials, but lifetime must account for disconnected edge operation.
+7. Heartbeat and certificate renewal are separate lifecycle functions.
+8. Separate subordinate CAs reduce blast radius and allow independent
+   lifecycle policies.
+9. A compromised operational Sub-CA requires a new trust path and
+   re-issuance, ideally using an unaffected factory/hardware identity to
+   re-establish trust.
+10. Zero-touch provisioning is fundamentally a trust-bootstrap problem,
+    not merely an automation problem.
+
+### Theory Status
+
+Completed in this checkpoint:
+
+- Zero-Touch Provisioning mental model.
+- Inventory identity vs cryptographic identity.
+- TPM-backed machine identity.
+- Secure Boot vs device identity.
+- Remote attestation as runtime trust evidence.
+- Factory identity vs operational identity.
+- Per-device credentials and revocation.
+- Short-lived credentials and automatic renewal.
+- Offline/disconnected edge lifetime trade-offs.
+- Root CA / Sub-CA separation.
+- Operations Sub-CA compromise recovery.
+
+Next theory topic:
+
+> **Day-2 Talos operations and fleet rollout:** how to safely upgrade,
+> observe, stop, recover and progressively roll out changes across
+> hundreds of remote EDGE nodes.
+
+The practical WireGuard lab remains paused until the theory track is
+complete.
