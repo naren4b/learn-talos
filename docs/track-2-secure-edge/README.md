@@ -3203,3 +3203,389 @@ If this chain is remembered, the detailed ingredients fit underneath it:
 | SCALE | Fleet controller, observability, policies, rollout governance |
 
 This is the memory model; Section 41 remains the detailed ingredient inventory.
+
+
+---
+
+## 43. Day-2 Fleet Observability — Learning Checkpoint
+
+This checkpoint captures the architecture discussion after the simple mental model in Section 42.
+
+### 43.1 Fleet health should represent incidents, not raw symptoms
+
+For a single EDGE, many failed checks can have one underlying cause:
+
+```text
+EDGE-347
+  |
+  +-- Heartbeat missing
+  +-- WireGuard down
+  +-- Talos API unreachable
+  +-- Kubernetes unknown
+  '-- Application unknown
+```
+
+The fleet view should normally expose one meaningful EDGE/site health state and retain the individual checks as evidence.
+
+**Principle:** thousands of telemetry signals should be reduced into actionable health states and incidents.
+
+### 43.2 Customer and service priority matter
+
+Technical severity alone is insufficient. Incident priority may consider:
+
+- technical health
+- actual service impact
+- customer/support tier
+- SLA/SLO
+- affected site or service criticality
+- duration and remaining operational runway
+
+A high disk percentage is therefore not automatically a critical incident.
+
+### 43.3 Hierarchical health and dependency correlation
+
+Fleet health can be modeled hierarchically:
+
+```text
+Global Fleet
+   |
+   +-- Region
+         |
+         +-- Shared gateway / platform dependency
+               |
+               +-- EDGE sites
+```
+
+If many EDGEs fail at the same time and share a common gateway or regional dependency, correlate the child symptoms into a parent incident instead of generating hundreds of independent alerts.
+
+### 43.4 Unreachable is not the same as failed
+
+A central monitoring failure or management-path failure can make healthy EDGEs invisible.
+
+Useful states include:
+
+```text
+Healthy -> Degraded -> Unknown/Unreachable -> Confirmed Service Impact
+```
+
+Do not report an EDGE as failed merely because the central platform cannot currently observe it.
+
+### 43.5 Service plane and management plane are separate
+
+```text
+EDGE
+ |
+ +-- Management plane: WireGuard, Talos API, monitoring
+ |
+ '-- Service plane: customer application and local data
+```
+
+An EDGE can have:
+
+```text
+Management: unavailable
+Service:    healthy
+```
+
+Management availability and customer-service availability should therefore have separate health models and potentially separate SLOs.
+
+### 43.6 Severity should consider duration
+
+A short management interruption may be transient, while the same condition lasting hours or days requires progressively stronger action.
+
+Conceptually:
+
+```text
+Management path lost
+       |
+       +-- short duration -> observe/retry
+       |
+       +-- sustained      -> warning/ticket/remediation
+       |
+       '-- near tolerance -> escalation/recovery
+```
+
+Exact thresholds must come from operational tolerance and SLA/SLO requirements rather than universal hard-coded values.
+
+### 43.7 Detect flapping
+
+Repeated short failures can be significant even when no individual outage crosses the normal alert-duration threshold.
+
+```text
+UP -> DOWN -> UP -> DOWN -> UP -> DOWN
+                   |
+                   v
+             FLAPPING / UNSTABLE
+```
+
+Track state transitions over a time window and create one instability incident instead of repeated DOWN/RECOVERED alert noise.
+
+### 43.8 Compare an EDGE with its peers
+
+High CPU, memory or storage should not always be investigated in isolation.
+
+Compare an EDGE against relevant peer groups such as:
+
+- hardware profile
+- application version
+- configuration version
+- Talos/Kubernetes version
+- region
+- workload class
+
+This helps distinguish a site-specific outlier from a fleet-wide/systemic pattern.
+
+### 43.9 Observability must include release/configuration context
+
+A useful question is not merely:
+
+> Which EDGEs have high disk usage?
+
+It is:
+
+> Is abnormal disk growth correlated with configuration v5 or application release 7.2?
+
+Correlation should trigger investigation, not automatically be treated as proof of causation. Compare versions, inspect what changed and consult the owning R&D/application team to determine whether the new behavior is expected.
+
+If an anomaly appears during a canary rollout, pause further promotion while the cause and blast radius are understood.
+
+### 43.10 Control metric cardinality
+
+Do not copy every fleet attribute onto every metric.
+
+Keep operational telemetry relatively lean:
+
+```text
+edge_disk_used_percent{edge_id="EDGE-347"}
+edge_cpu_percent{edge_id="EDGE-347"}
+edge_heartbeat{edge_id="EDGE-347"}
+```
+
+Stable metadata can be represented separately, for example through an info metric:
+
+```text
+edge_info{
+  edge_id="EDGE-347",
+  region="ap-south",
+  config_version="v5",
+  app_version="7.2",
+  hardware="HW-A",
+  support_tier="premium"
+} 1
+```
+
+Or some enrichment can remain in the fleet inventory/CMDB and be joined by `edge_id` in the appropriate dashboard, analytics or alerting layer.
+
+### 43.11 Inventory / CMDB mental model
+
+CMDB means Configuration Management Database. In this architecture it is simply the authoritative fleet registry.
+
+Example record:
+
+```text
+EDGE-347
+├── customer_id       = CUST-42
+├── site              = SITE-17
+├── region            = APAC
+├── hardware_profile  = HW-A
+├── desired_config    = v5
+├── observed_config   = v5
+├── app_version       = 7.2
+├── support_tier      = premium
+├── lifecycle         = ACTIVE
+└── identity          = device-347
+```
+
+The physical implementation could be a relational database such as PostgreSQL/MySQL, a suitable NoSQL database, or simple YAML/JSON/TOML files for a small PoC.
+
+Keep the responsibilities separate:
+
+```text
+Git / SCM
+  = what configuration versions contain
+
+Inventory / CMDB
+  = which EDGE should run which version and its fleet state
+```
+
+### 43.12 Reconnection storms and telemetry buffering
+
+A long regional WAN outage can leave thousands of EDGEs with telemetry backlog. When connectivity returns, simultaneous replay can overload central ingestion.
+
+This is a **reconnection storm / thundering-herd** problem.
+
+Initial architectural instinct may be to introduce a queue such as SQS/Kafka, but first evaluate the native buffering, retry and flow-control capabilities of the telemetry agent and ingestion platform.
+
+For vmagent, the design topics to verify for the deployed version include:
+
+- persistent local buffering/queue
+- disk budget
+- retry behavior
+- concurrent sending
+- replay/rate limiting
+- treatment of fresh samples while backlog drains
+
+**Principle:** use native capabilities first; introduce another messaging layer only when requirements demonstrate the need.
+
+Fleet-level jitter, controlled replay and backpressure can further reduce synchronized load.
+
+### 43.13 Not all telemetry has equal value
+
+During a long outage, retaining every ordinary historical metric may be less important than retaining information such as:
+
+- business-critical telemetry
+- security/audit events
+- recent operational metrics
+- data required for incident reconstruction
+
+Retention and replay policy should therefore follow business and operational requirements rather than treating all telemetry identically.
+
+### 43.14 Buffer capacity is an SLO/runway problem
+
+Use the same storage-runway model developed earlier:
+
+```text
+Runway = available telemetry buffer / observed telemetry growth rate
+```
+
+Example:
+
+```text
+Buffer       = 20 GB
+Generation   = 5 GB/day
+Runway       ~= 4 days
+```
+
+Required capacity should derive from:
+
+```text
+outage tolerance
++ expected telemetry rate
++ safety margin
+= required buffer/runway
+```
+
+Alert on remaining runway and operational risk, not merely a static disk percentage.
+
+### 43.15 Heartbeat helps interpret missing telemetry
+
+```text
+Metrics   Heartbeat   Interpretation
+-------   ---------   --------------------------------
+present   present     observable
+missing   present     telemetry pipeline problem
+missing   missing     visibility/connectivity likely lost
+present   missing     heartbeat path/problem
+```
+
+Missing metrics plus missing heartbeat indicates loss of visibility/connectivity, not proof that the customer service itself is down.
+
+### 43.16 Observability checkpoint mental model
+
+```text
+Raw Signals
+     |
+     v
+Dependency Correlation
+     |
+     v
+EDGE / Site Health
+     |
+     +--> Management health
+     +--> Service health
+     |
+     v
+Duration + Flapping + Runway
+     |
+     v
+Customer / SLA Priority
+     |
+     v
+Actionable Incident
+```
+
+The fleet-observability design developed so far is:
+
+**hierarchical health -> dependency correlation -> false-positive reduction -> management/service separation -> time-aware severity -> flapping detection -> peer comparison -> release-aware telemetry -> cardinality control -> buffering/runway -> controlled replay -> heartbeat correlation.**
+
+---
+
+## 44. Telemetry Identity and Certificate Rotation — Next Learning Point
+
+Before pausing, one additional observability question was identified:
+
+> When vmagent sends metrics from an EDGE to central VictoriaMetrics, what establishes identity and authorization?
+
+WireGuard and application/workload identity solve different problems.
+
+Conceptually:
+
+```text
+EDGE vmagent
+     |
+     | application authentication / authorization
+     v
+WireGuard management/private overlay
+     |
+     v
+Central ingestion endpoint
+     |
+     v
+VictoriaMetrics
+```
+
+WireGuard can establish a secure network path and peer identity. Application-level authentication can independently determine whether that EDGE/workload is allowed to write telemetry and to which tenant or ingestion scope.
+
+An ingestion gateway may optionally provide authentication, authorization, tenant mapping and rate limiting before VictoriaMetrics, but it should be introduced only when requirements justify the extra component.
+
+### 44.1 Certificate renewal fundamentals
+
+Certificate lifetime and certificate renewal are different.
+
+Do not wait until expiry before renewing. Open a safe renewal window substantially earlier so failures can be retried while the old credential is still valid.
+
+At fleet scale, avoid synchronized renewal. If thousands of certificates have similar lifetimes, spread renewal attempts across a safe window using jitter.
+
+```text
+Certificate issued
+      |
+      +---- safe renewal window ----+
+      |                              |
+      |      randomized/jittered     |
+      |      renewal attempt         |
+      |                              |
+      +------------------------------+
+                                     |
+                                   expiry
+```
+
+This avoids correlated expiry and a renewal thundering herd against the CA/enrollment service.
+
+The same general lifecycle principle applies to certificates, keys, maintenance contracts, licenses, hardware lifecycle and other fleet-wide expiry events:
+
+**avoid correlated expiry.**
+
+### Resume point
+
+Continue with this scenario:
+
+```text
+EDGE-347
+
+Operational certificate expires in: 72 hours
+Renewal attempt:                     FAILED
+CA / Internet connectivity:          unavailable
+Customer application:                healthy
+Site offline tolerance:              2-3 days
+```
+
+Design the policy using:
+
+- retry
+- exponential backoff/jitter
+- remaining certificate lifetime
+- offline tolerance
+- escalation
+- avoiding disruption to a healthy customer application
+
+After certificate lifecycle, continue with remaining Day-2 topics such as fleet key/secret rotation, decommissioning/secure retirement, recovery validation, fleet segmentation and the final 100-1,000+ EDGE production architecture.
