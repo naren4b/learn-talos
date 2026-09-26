@@ -59,3 +59,318 @@ Begin Track-3A with requirements and architecture for the production-scale
 central platform. Define capabilities, trust boundaries, data flows, failure
 domains, recovery objectives, evidence and scale assumptions before installing
 KIND or any platform component.
+
+
+---
+
+## 2026-09-26 — Learning checkpoint: Cold hardware to ready to ship
+
+### Learning objective and pace
+
+The immediate objective is to understand and absorb the architecture before
+implementing it. New and advanced topics must be introduced steadily, one
+mental model at a time. Do not install a large platform stack or move to the
+next concept until the current boundary is clear.
+
+### Initial central-platform responsibilities
+
+The first responsibilities identified for the central platform were:
+
+- verify that an EDGE is legitimate;
+- maintain fleet inventory, including EDGE-ID, account, customer and site;
+- provide approved signed Talos artifacts;
+- maintain desired and observed information such as Talos version, Kubernetes
+  version, WireGuard overlay address and configuration version.
+
+These responsibilities should remain separate capabilities rather than become
+one all-powerful service:
+
+```text
+Enrollment and verification
+        ↓
+Fleet inventory
+        ↓
+Image and signing pipeline
+        ↓
+Configuration and lifecycle management
+```
+
+The signed image is normally shared by an approved hardware/software profile.
+Per-device identity and configuration remain separate:
+
+```text
+Shared signed Talos image
+        +
+Unique TPM-backed identity
+        +
+Per-device configuration
+        =
+Individually managed EDGE
+```
+
+### What an EDGE physically is
+
+An EDGE is a role, not a specific product. In this architecture it is a
+physical computer installed at a customer site and managed by the central
+platform. Depending on the workload, it could be a compact x86 computer, a
+rugged fanless industrial computer or a server-class system.
+
+Before purchasing at fleet scale, define and qualify an approved hardware
+profile. A representative profile might include x86_64 CPU, suitable RAM and
+SSD capacity, UEFI Secure Boot, TPM 2.0, multiple network interfaces, the
+required power/cooling/mounting design and an appropriate vendor warranty.
+Exact sizing depends on the customer workload.
+
+The safe commercial sequence is to buy evaluation units first and verify
+Talos compatibility, NICs, storage, UEFI, Secure Boot, TPM behavior, power-loss
+recovery, thermals and workload capacity before freezing an approved model.
+
+### Cold hardware and factory provisioning
+
+Cold hardware has not yet become a trusted member of the fleet. Factory or
+staging provisioning binds the physical unit to a fleet identity and prepares
+it for shipment.
+
+The initial inventory record separates the business identity from manufacturer
+attributes:
+
+```text
+EDGE-001
+├── Manufacturer serial
+├── Hardware profile
+├── TPM identity
+├── Lifecycle state
+├── Customer/account assignment
+└── Site assignment
+```
+
+The main factory activities are:
+
+1. Inspect and validate the hardware.
+2. Allocate an EDGE-ID and create the inventory record.
+3. Read and validate TPM manufacturer/public identity information.
+4. Create separate TPM-protected attestation and operational keys.
+5. Register only public information centrally; private keys stay protected by
+   the TPM.
+6. Fetch and install the approved signed Talos artifact for the hardware
+   profile.
+7. Enrol the corresponding public Secure Boot trust in UEFI.
+8. Configure only minimum bootstrap information.
+9. Run factory acceptance tests.
+10. Mark the unit `READY_TO_SHIP` or `QUARANTINED`.
+
+### TPM mental model
+
+A TPM is the EDGE's local hardware root of trust and protected cryptographic
+engine. It may be a discrete security chip, an integrated implementation or a
+firmware-backed protected environment; the production hardware profile must
+state and validate the required assurance level.
+
+The key roles are:
+
+```text
+EK  = Which TPM is this?
+AK  = Which TPM signed this attestation evidence?
+PCR = What platform/boot state was measured?
+Operational key = Which EDGE is authenticating now?
+```
+
+**PCR means Platform Configuration Register**, not Platform Container
+Register. PCRs live in the TPM and hold hash values extended from boot
+measurements. The current values are not permanent device identity.
+
+The central platform can retain the EK public identity or fingerprint, EK
+certificate validation result, AK public key, operational public key or
+certificate, and approved measurement policy. It must never copy the EK, AK or
+operational private keys from the EDGE.
+
+The TPM produces cryptographic evidence; the central platform makes the trust
+decision. For local disk protection, the operating system encryption layer
+encrypts the SSD data while the TPM protects or releases the disk key under an
+approved policy.
+
+### Factory provisioning sequence
+
+**Cold Hardware Provisioning**
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant OEM as Hardware Supplier
+    participant OPS as Staging Operator
+    participant STN as Provisioning Station
+    participant TPM as EDGE TPM
+    participant ART as Artifact Repository
+    participant INV as Fleet Inventory
+    participant QA as Validation Service
+
+    OEM->>OPS: Deliver cold hardware
+    OPS->>STN: Connect power and staging network
+    STN->>STN: Inspect hardware and firmware
+    STN->>TPM: Read TPM identity and capabilities
+    TPM-->>STN: Return EK public information
+    STN->>QA: Validate TPM and hardware profile
+    QA-->>STN: Hardware approved
+
+    STN->>INV: Create inventory record
+    INV-->>STN: Allocate EDGE-ID
+
+    STN->>TPM: Create non-exportable AK
+    TPM-->>STN: Return AK public key
+    STN->>TPM: Create non-exportable operational key
+    TPM-->>STN: Return operational public key
+    STN->>INV: Register public identities
+
+    Note over TPM,INV: Private keys never leave the TPM
+
+    STN->>ART: Fetch approved signed Talos artifact
+    ART-->>STN: Return artifact and verification metadata
+    STN->>STN: Verify and install Talos on EDGE SSD
+    STN->>STN: Enrol public Secure Boot trust
+    STN->>STN: Configure minimum bootstrap information
+
+    STN->>QA: Boot and run acceptance tests
+    QA->>TPM: Read security state and measurements
+    TPM-->>QA: Return measured state
+
+    alt Validation passes
+        QA->>INV: Record validated versions and evidence
+        INV->>INV: Set lifecycle to READY_TO_SHIP
+        INV-->>OPS: Approve shipment
+    else Validation fails
+        QA->>INV: Record failure reason
+        INV->>INV: Set lifecycle to QUARANTINED
+        INV-->>OPS: Do not ship
+    end
+```
+
+### Provisioning station and artifact destination
+
+The provisioning station is another trusted machine in the staging facility,
+not a component shipped with the EDGE. For the initial design it can be a
+secured Linux workstation. At larger scale it can become an automated network
+or manufacturing-line provisioning service.
+
+The precise artifact path is:
+
+```text
+Image build pipeline
+        ↓
+Protected signing service
+        ↓
+Artifact repository
+        ↓
+Provisioning station
+        ↓
+EDGE internal SSD
+```
+
+The provisioning station fetches an already approved and signed artifact,
+verifies it, and installs it. It does not receive the private image-signing
+key. The signed Talos artifact goes onto the SSD; the corresponding public
+Secure Boot trust is enrolled into UEFI.
+
+### ISO, installed Talos and remote provisioning
+
+The Talos ISO is installation media. The chosen initial architecture does not
+leave the ISO on the EDGE SSD:
+
+```text
+Talos ISO or installer
+        ↓
+Install Talos
+        ↓
+EDGE SSD contains installed Talos
+        ↓
+Remove installation media
+```
+
+Factory provisioning and remote provisioning solve different problems:
+
+```text
+Factory provisioning
+= install trusted Talos and establish hardware identity
+
+Remote provisioning after customer power-on
+= verify the EDGE and deliver customer/site-specific configuration
+```
+
+Remote provisioning in the initial design does not reinstall the operating
+system. It supplies the unique network, WireGuard, Talos machine, Kubernetes
+role and application assignments after enrollment succeeds. Fully remote OS
+installation is another possible design, but it adds recovery-image and
+network-boot complexity and is not selected for the first architecture.
+
+### Secure Boot preview
+
+UEFI is firmware on the EDGE motherboard. Secure Boot is configured before
+shipment and enforced on every boot, including the first customer-site boot.
+Its narrow question is:
+
+> Is this signed boot software trusted and therefore allowed to execute?
+
+**Secure Boot Decision**
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Customer
+    participant UEFI as EDGE UEFI Firmware
+    participant Trust as UEFI Trust Database
+    participant SSD as EDGE SSD
+    participant Talos as Signed Talos UKI
+
+    Customer->>UEFI: Power on EDGE
+    UEFI->>Trust: Load trusted public certificate
+    UEFI->>SSD: Read Talos boot artifact
+    SSD-->>UEFI: Return signed Talos UKI
+    UEFI->>UEFI: Verify artifact signature
+
+    alt Signature is trusted
+        UEFI->>Talos: Allow execution
+        Talos-->>Customer: EDGE starts Talos
+    else Signature is untrusted
+        UEFI->>UEFI: Block execution
+        UEFI-->>Customer: Boot fails securely
+    end
+```
+
+This was only a preview. The terms image, ISO, installed Talos, UKI and Secure
+Boot began to overlap and the mental model stopped being clear. The learning
+session was deliberately paused instead of adding more detail.
+
+### Current understanding
+
+The stable checkpoint is:
+
+```text
+Cold hardware
+        ↓
+Factory validates hardware and TPM
+        ↓
+Public identities registered centrally
+        ↓
+Approved Talos is installed on the SSD
+        ↓
+Public Secure Boot trust is enrolled in UEFI
+        ↓
+Acceptance tests pass
+        ↓
+READY_TO_SHIP
+```
+
+The unit is prepared but not yet an active production EDGE. Customer-site
+enrollment, verification and unique configuration happen after power-on and
+will be covered only after the boot-artifact model is clear.
+
+### Exact restart point
+
+Resume slowly from this unresolved question:
+
+> What exactly are the Talos image, ISO, installer and UKI; which one is used
+> temporarily, which one remains on the SSD, and which one UEFI verifies?
+
+Do not proceed to detailed customer-site enrollment or remote provisioning
+until this artifact flow is understood in a simple physical sequence.
