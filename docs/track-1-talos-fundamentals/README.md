@@ -40,6 +40,6 @@ Track 2 answers:
 
 See:
 
-`docs/roadmap.md`
+`docs/learning-foundations/roadmap.md`
 
 This Track-1 directory exists to keep the repository's track naming and navigation consistent without duplicating the detailed roadmap.

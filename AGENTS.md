@@ -11,7 +11,7 @@ The shareable curriculum lives under [docs/](docs/), and the private working not
 - Keep the repo focused on learning outcomes, not app deployment work.
 - Prefer adding or updating markdown notes, checklists, labs, and command examples over generic code scaffolding.
 - Preserve the learner's stated goal: become proficient as a Talos/Linux platform engineer across bare metal, Proxmox, edge, and cloud environments.
-- When creating notes or labs, follow the teaching pattern in [docs/roadmap.md](docs/roadmap.md): problem → Talos implementation → comparison → commands → internal behavior → verification → failure handling → hands-on challenge.
+- When creating notes or labs, follow the teaching pattern in [docs/learning-foundations/roadmap.md](docs/learning-foundations/roadmap.md): problem → Talos implementation → comparison → commands → internal behavior → verification → failure handling → hands-on challenge.
 
 ## Interactive learning workflow
 
@@ -211,7 +211,7 @@ Keep WireGuard network identity, Talos PKI/API identity, and future enrollment/d
 
 ## Files to prioritize
 
-- [docs/roadmap.md](docs/roadmap.md): shareable curriculum and learning progression.
+- [docs/learning-foundations/roadmap.md](docs/learning-foundations/roadmap.md): shareable curriculum and learning progression.
 - [docs/track-2-secure-edge/README.md](docs/track-2-secure-edge/README.md): consolidated/final Track-2 learning notes and navigation.
 - [docs/track-2-secure-edge/track-2-secure-edge-live.md](docs/track-2-secure-edge/track-2-secure-edge-live.md): append-only chronological PoC evidence, failures, lessons, and restart point.
 - [private/](private/): private working notes and scratch material.

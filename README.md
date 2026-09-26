@@ -33,7 +33,7 @@ The public-facing content should stay in the reusable docs and repo guidance, wh
 
 ## Core curriculum
 
-The public learning plan is now in [docs/roadmap.md](docs/roadmap.md). The original root-level objective content has been folded into the modular roadmap so the repo stays clean and shareable.
+The public learning plan is now in [docs/learning-foundations/roadmap.md](docs/learning-foundations/roadmap.md). The original root-level objective content has been folded into the modular roadmap so the repo stays clean and shareable.
 
 ## Secure zero-touch edge track
 
@@ -58,7 +58,7 @@ not depend on Omni or another paid fleet-management platform.
 
 ## Common entry points
 
-- Start with [docs/roadmap.md](docs/roadmap.md)
+- Start with [docs/learning-foundations/roadmap.md](docs/learning-foundations/roadmap.md)
 - Review [AGENTS.md](AGENTS.md) for repo guidance
 - Use [scripts/](scripts/) for small automation tasks
 - Use [ai/bundle.yaml](ai/bundle.yaml) for AI bundle metadata

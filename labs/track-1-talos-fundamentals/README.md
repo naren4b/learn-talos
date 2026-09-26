@@ -1,6 +1,6 @@
 # Track 1 — Talos Fundamentals Labs
 
-These labs support the Track-1 Talos fundamentals curriculum in `docs/roadmap.md`.
+These labs support the Track-1 Talos fundamentals curriculum in `docs/learning-foundations/roadmap.md`.
 
 The purpose of Track 1 is to understand Talos itself before applying it to the Secure EDGE architecture in Track 2.
 
@@ -67,7 +67,7 @@ Track-2 labs live in:
 ## Source learning material
 
 - Track-1 entry: `docs/track-1-talos-fundamentals/README.md`
-- Detailed curriculum: `docs/roadmap.md`
+- Detailed curriculum: `docs/learning-foundations/roadmap.md`
 - Next track: `docs/track-2-secure-edge/`
 
 Individual lab directories should be created as the corresponding fundamental is studied rather than pre-populating command-heavy exercises before the learning session.
