@@ -178,11 +178,13 @@ For documentation-heavy changes, a successful Git commit is **not** evidence tha
 
 ## Track-2 Secure Edge guidance
 
-The live Track-2 learning document is:
+The Track-2 documentation contract is:
 
-`docs/track-2-secure-edge/README.md`
+- `docs/track-2-secure-edge/README.md` — consolidated/final learning notes and navigation.
+- `docs/track-2-secure-edge/track-2-secure-edge-live.md` — chronological transcript-like PoC record. **Append only. Never restructure, reorder, consolidate, rewrite, or clean up historical entries.** Corrections and changed understanding must be appended as new dated/checkpoint entries.
+- sub-topic directories — focused use-case learning notes derived from the journey.
 
-Read it completely before continuing Track-2 work.
+Read the live document completely before continuing Track-2 work and preserve its chronology.
 
 The Track-2 production direction is zero-touch remote edge management: customer EDGE devices may be behind NAT/firewalls, initiate outbound secure connectivity, receive centrally governed identity/configuration, and remain manageable without SSH.
 
@@ -210,7 +212,8 @@ Keep WireGuard network identity, Talos PKI/API identity, and future enrollment/d
 ## Files to prioritize
 
 - [docs/roadmap.md](docs/roadmap.md): shareable curriculum and learning progression.
-- [docs/track-2-secure-edge/README.md](docs/track-2-secure-edge/README.md): live Track-2 architecture, PoC evidence, failures, lessons, and restart point.
+- [docs/track-2-secure-edge/README.md](docs/track-2-secure-edge/README.md): consolidated/final Track-2 learning notes and navigation.
+- [docs/track-2-secure-edge/track-2-secure-edge-live.md](docs/track-2-secure-edge/track-2-secure-edge-live.md): append-only chronological PoC evidence, failures, lessons, and restart point.
 - [private/](private/): private working notes and scratch material.
 - Future markdown files under this repo should use clear headings and a practical platform-engineering tone.
 
