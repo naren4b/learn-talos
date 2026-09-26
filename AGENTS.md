@@ -158,6 +158,24 @@ For visual explanations, prefer Mermaid diagrams that are:
 
 Use sanitized diagrams instead of raw screenshots when screenshots may expose infrastructure details, credentials, tokens, keys, certificates, or other sensitive information. Sanitized screenshots can be stored in a documentation assets directory when they add evidence that a diagram cannot represent.
 
+## Pre-commit and main-merge validation gate
+
+Every agent or contributor must validate repository changes **before committing** and again **before merging or writing directly to `main`**. Validation is a blocking gate: if any check fails, stop, fix the issue, rerun the checks, and do not merge.
+
+Required checks for every change:
+
+1. Review `git diff --check` (or equivalent diff validation) for whitespace/conflict-marker problems.
+2. Confirm no secrets or generated credentials are being committed. Pay special attention to Talos configs, `talosconfig`, `kubeconfig`, WireGuard private keys, AWS credentials, Terraform state/plans and certificate/private-key material.
+3. Validate every changed Markdown file for balanced code fences and structurally valid Markdown.
+4. Validate **every Mermaid block in each changed Markdown file**, not only newly added diagrams. Mermaid must use GitHub-compatible syntax. Do not place YAML frontmatter such as `--- / title: / ---` inside Mermaid fences; put the diagram title in Markdown immediately above the fence.
+5. Keep Mermaid diagrams simple and mobile-friendly; titles must remain under 10 words.
+6. Verify internal Markdown links/anchors affected by the change. Prefer explicit stable HTML anchors when a section is linked externally and GitHub heading normalization could make the URL fragile.
+7. For Terraform or other executable configuration, run the appropriate formatter/validator when available (for Terraform: `terraform fmt -check` and `terraform validate`). Never apply infrastructure merely as part of documentation validation.
+8. Re-read the rendered-content-sensitive portions of the final file after validation, especially tables, Mermaid diagrams, code fences and headings.
+9. Before merging a PR to `main`, require the validation result to be green. Before any exceptional direct commit to `main`, perform the same validation first; direct-to-main must not bypass this gate.
+
+For documentation-heavy changes, a successful Git commit is **not** evidence that GitHub can render the document. Rendering compatibility is part of the definition of done.
+
 ## Track-2 Secure Edge guidance
 
 The live Track-2 learning document is:
