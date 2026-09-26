@@ -3578,3 +3578,37 @@ Design the policy using:
 - avoiding disruption to a healthy customer application
 
 After certificate lifecycle, continue with remaining Day-2 topics such as fleet key/secret rotation, decommissioning/secure retirement, recovery validation, fleet segmentation and the final 100-1,000+ EDGE production architecture.
+
+
+---
+
+## 2026-09-26 — Point 24: Container Strategy
+
+### Production scope clarification
+
+**Learner:** for the production
+
+**Refinement:** Point 24 should describe the production architecture rather than the temporary EC2/Docker PoC. The production direction discussed is an AWS-hosted management plane where application/control services can run as containers on EKS, while durable state, secrets, and cryptographic trust are kept outside ordinary application containers using appropriate managed/dedicated services.
+
+### Architecture question — Why EKS?
+
+**Question:** Why choose EKS rather than ECS/Fargate for these production control-plane containers?
+
+**Learner answer:** EKS, because these services are needed 24x7 365 days, not momentarily.
+
+**Feedback / refinement:** The availability concern is valid, but 24x7 operation alone does not select EKS because ECS/Fargate can also run continuously. Treat these as two separate decisions:
+
+- **24x7 requirement -> high-availability requirement.**
+- **EKS -> platform/operational architecture decision.**
+
+A stronger architect answer is: these are always-on, business-critical management-plane services. Choose EKS when Kubernetes capabilities are also required, such as standardized deployment, self-healing, horizontal scaling, workload isolation, policy enforcement, GitOps, observability, and a common operational model for a growing set of control-plane services.
+
+### Production container boundary
+
+Candidate containerized services include enrollment, attestation verification, fleet/inventory APIs, configuration services, and management APIs. Persistent databases, long-term state, and root/signing-key custody should not be placed inside ordinary application containers by default.
+
+### Pending architecture question
+
+If the Enrollment Service runs with three replicas on EKS, should all three replicas be allowed to directly hold the CA private signing key?
+
+**Status:** Awaiting learner answer.
