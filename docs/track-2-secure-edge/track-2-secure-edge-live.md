@@ -3612,3 +3612,26 @@ Candidate containerized services include enrollment, attestation verification, f
 If the Enrollment Service runs with three replicas on EKS, should all three replicas be allowed to directly hold the CA private signing key?
 
 **Status:** Awaiting learner answer.
+
+
+---
+
+## 2026-09-26 — Checkpoint: Track-2 paused for Track-3A
+
+**Status:** PAUSED — not completed.
+
+Point 24, **Container Strategy**, remains unfinished. Track-2 is intentionally
+paused so the Track-3A central management platform can be designed and built
+first. Resume Track-2 after Track-3A is complete.
+
+Track-3 scope is the **Central Management Platform for 1,000+ EDGE Sites** on
+customer premises.
+
+```text
+Track-3A = FOSS reference implementation on local Ubuntu WSL + KIND
+Track-3B = AWS production implementation using EKS + managed AWS services
+```
+
+The Track-3 production architecture and theory remain production-grade for
+1,000+ EDGE sites. KIND is only the hands-on implementation environment for
+Track-3A.

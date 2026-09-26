@@ -48,6 +48,14 @@ shipped cold, enrolled across the Internet and managed without SSH.
 The implementation uses open-source and self-managed components. It does
 not depend on Omni or another paid fleet-management platform.
 
+## Central EDGE platform track
+
+Track 3 designs the central management platform needed to operate 1,000+
+customer-premise EDGE sites. It begins with a local FOSS reference
+implementation and later maps the same production-grade architecture to AWS.
+
+- [Track-3 central EDGE platform](docs/track-3-central-edge-platform/README.md)
+
 ## Working conventions
 
 - Keep the repo focused on learning outcomes rather than application deployment.
