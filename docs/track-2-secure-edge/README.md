@@ -8,7 +8,7 @@ This directory contains the Track-2 Secure Edge learning material.
 | --- | --- |
 | [README.md](README.md) | Consolidated, reviewed learning notes and navigation. |
 | [track-2-secure-edge-live.md](track-2-secure-edge-live.md) | Chronological PoC/transcript-like record. **Append only; never reorganize historical entries.** |
-| [mental-models/](mental-models/) | Focused sub-topics and use cases derived from the learning journey. |
+| [sub-topics/](sub-topics/) | Focused sub-topics and use cases derived from the learning journey. |
 
 ## Track goal
 
@@ -39,16 +39,16 @@ The PoC uses an AWS-hosted control side and a VirtualBox Talos EDGE node. Exact 
 
 ### Talos at the EDGE
 
-See [mental-models/topic-1/](mental-models/topic-1/).
+See [sub-topics/](sub-topics/).
 
 Current focused notes include:
 
-- [Talos at EDGE overview](mental-models/topic-1/00-topic-1-talos-at-edge.md)
-- [Why Talos at EDGE](mental-models/topic-1/01-why-talos-at-edge.md)
-- [Bootstrap and trust](mental-models/topic-1/02-bootstrap-and-trust.md)
-- [Connect EDGE to central](mental-models/topic-1/03-connect-edge-to-central.md)
-- [End-to-end interview card](mental-models/topic-1/04-end-to-end-interview-card.md)
-- [Interview learning record](mental-models/topic-1/interview-1-talos-at-edge.md)
+- [Talos at EDGE overview](sub-topics/00-topic-1-talos-at-edge.md)
+- [Why Talos at EDGE](sub-topics/01-why-talos-at-edge.md)
+- [Bootstrap and trust](sub-topics/02-bootstrap-and-trust.md)
+- [Connect EDGE to central](sub-topics/03-connect-edge-to-central.md)
+- [End-to-end interview card](sub-topics/04-end-to-end-interview-card.md)
+- [Interview learning record](sub-topics/interview-1-talos-at-edge.md)
 
 ## Trust mental model
 
@@ -64,7 +64,7 @@ Keep these questions separate:
 | Remote attestation | Can a remote verifier validate fresh platform evidence? |
 | Machine certificate | Which approved EDGE may authenticate operationally? |
 
-See [Bootstrap and Trust](mental-models/topic-1/02-bootstrap-and-trust.md) for the detailed learning story.
+See [Bootstrap and Trust](sub-topics/02-bootstrap-and-trust.md) for the detailed learning story.
 
 ## Documentation rule
 
