@@ -1678,10 +1678,9 @@ Next: complete the remaining Phase 0 network-separation/outbound-HTTPS evidence,
 
 #### Lab Connectivity Troubleshooting Flow
 
+**EDGE Lab Access Path**
+
 ```mermaid
----
-title: EDGE Lab Access Path
----
 flowchart LR
     A[WSL Tools] -->|10.0.2.15:50000 or 6443| B[socat]
     B -->|Windows gateway| C[VirtualBox NAT]
@@ -1744,10 +1743,9 @@ Before implementation, the secure management design was reviewed using architect
 
 The recovery path must not depend on the component being recovered.
 
+**Recovery Path Independence**
+
 ```mermaid
----
-title: Recovery Path Independence
----
 flowchart TD
     A[EDGE Boots] --> B[Talos Networking]
     B --> C[WireGuard Tunnel]
@@ -1766,10 +1764,9 @@ WireGuard key pairs are separate from the certificate/private-key identity used 
 
 **Answer:** The AWS WireGuard gateway. EDGE is behind customer firewall/NAT and initiates outbound UDP to AWS. EDGE does not require an inbound Internet endpoint.
 
+**EDGE Initiates Tunnel**
+
 ```mermaid
----
-title: EDGE Initiates Tunnel
----
 flowchart LR
     A[EDGE-001 Behind NAT] -->|Outbound UDP| B[Internet]
     B --> C[AWS WireGuard Endpoint]
@@ -1798,10 +1795,9 @@ If AWS manages Talos using `10.100.0.2:50000`, the Talos API certificate must be
 
 Talos host networking does. The desired dependency chain is:
 
+**EDGE Boot Recovery Path**
+
 ```mermaid
----
-title: EDGE Boot Recovery Path
----
 flowchart TD
     A[EDGE Power On] --> B[Talos Boots]
     B --> C[Host Network]
@@ -1888,10 +1884,9 @@ work.
 
 ### Target Connectivity
 
+**Secure EDGE Management Path**
+
 ```mermaid
----
-title: Secure EDGE Management Path
----
 flowchart LR
     A[EDGE-001] -->|Outbound UDP 51820| B[Customer NAT]
     B --> C[Internet]
@@ -1928,10 +1923,9 @@ divide it into gateway pools/subnets or failure domains. Sharding can
 follow geography, tenant, capacity, availability zone or another
 operational boundary.
 
+**WireGuard Fleet Sharding**
+
 ```mermaid
----
-title: WireGuard Fleet Sharding
----
 flowchart TD
     A[Fleet Overlay Address Space]
     A --> B[Gateway Group A]
@@ -2023,10 +2017,9 @@ Immediately after the apply:
 
 ### Failure Visual
 
+**WireGuard Attempt 1 Failure**
+
 ```mermaid
----
-title: WireGuard Attempt 1 Failure
----
 flowchart TD
     A[Healthy EDGE 10.0.2.15]
     B[Apply Validated Multi-Document Config]
@@ -2063,10 +2056,9 @@ default   via 10.0.2.2 on enp0s3
 This proves the base VirtualBox NAT path was restored. The next attempt
 must preserve this path while **adding** WireGuard.
 
+**Required Additive Network Change**
+
 ```mermaid
----
-title: Required Additive Network Change
----
 flowchart LR
     A[enp0s3 10.0.2.15] --> B[Default via 10.0.2.2]
     B --> C[VirtualBox NAT]
@@ -2164,10 +2156,9 @@ personal laptop.
 The laptop will temporarily simulate the AWS WireGuard gateway using a
 Docker-based WireGuard endpoint.
 
+**Local WireGuard Proof**
+
 ```mermaid
----
-title: Local WireGuard Proof
----
 flowchart LR
     A[EDGE-001<br/>Talos / VirtualBox]
     B[Laptop Network Path]
@@ -2236,10 +2227,9 @@ boot.npanda.online:51820
 
 Conceptually:
 
+**Stable WireGuard Endpoint**
+
 ```mermaid
----
-title: Stable WireGuard Endpoint
----
 flowchart LR
     A[EDGE Fleet]
     B[boot.npanda.online]
@@ -2325,10 +2315,9 @@ Public key      = Which WireGuard peer is EDGE cryptographically talking to?
 
 ### Complete Local Connectivity Model
 
+**Local EDGE Network Paths**
+
 ```mermaid
----
-title: Local EDGE Network Paths
----
 flowchart LR
     W[WSL<br/>talosctl / kubectl]
     S[socat]
