@@ -201,3 +201,100 @@ Strengthen one area first:
 **Secure Boot → TPM → Attestation → Operational identity → WireGuard identity**
 
 Then test it with a new production architecture scenario before considering Topic 1 interview-ready.
+
+
+## Interview 1 — Communication assessment
+
+### Rating
+
+**Overall: 6.5 / 10**
+
+This rating measures demonstrated interview performance, not accumulated technical knowledge.
+
+| Dimension | Rating | Evidence |
+|---|---:|---|
+| Architecture instincts | 8/10 | Identified NAT/firewall constraints, EDGE-initiated connectivity, trust, identity, Talos, PKI and disconnected operation without hints. |
+| Technical precision | 6/10 | Secure Boot, TPM, attestation, certificates and WireGuard identity were sometimes conflated. |
+| Requirement-first reasoning | 6/10 | Important requirements were recognized, but implementation technologies appeared before the architecture was fully framed. |
+| Trade-off thinking | 6/10 | Talos benefits were clear; operational cost and alternatives appeared only after coaching. |
+| Failure/recovery thinking | 8/10 | Strong management-plane versus service-plane reasoning during the 24-hour central outage scenario. |
+| Executive communication | 5.5/10 | Correct ideas were delivered as thinking-aloud detail; the listener had to reconstruct the architecture. |
+| Engineering depth | 8/10 | Demonstrated substantial implementation awareness and could go below the architecture layer when needed. |
+
+### Primary behavioral finding
+
+The main weakness is **not insufficient technical depth**. It is controlling when that depth appears.
+
+Current tendency:
+
+```text
+Question → Everything I know → Architecture emerges during explanation
+```
+
+Target behavior:
+
+```text
+Question → Executive framing → Decision + outcome → Architecture reasoning + trade-off → STOP → Technical evidence when challenged
+```
+
+### Progressive-disclosure answer model
+
+Use three depths deliberately:
+
+1. **Executive — 20–30 seconds:** business/operational problem, architecture decision, intended outcome.
+2. **Architect — 60–90 seconds:** major components/boundaries, why the decision fits, important trade-off and failure behavior.
+3. **Engineer — on demand:** protocols, APIs, certificates, configuration, commands and implementation evidence.
+
+A short answer should still contain one or two concrete technical anchors so it does not sound generic.
+
+### Reframed Question 1 answer
+
+**Executive layer**
+
+> We need remote EDGE appliances to bootstrap in customer networks we do not control, without depending on inbound access or manual server administration. I would design the lifecycle around hardware/software trust first, EDGE-initiated secure connectivity second, and declarative Talos/Kubernetes provisioning third. The outcome is an appliance that can be shipped, powered on, verified centrally and then managed remotely without treating it as a traditional SSH-managed server.
+
+**Architect layer**
+
+> I separate boot trust, device trust, operational identity and connectivity. An approved Talos artifact boots under Secure Boot; TPM-backed identity and measurements can support enrollment/attestation; central policy decides whether to trust the device before issuing operational credentials. Because the customer site may be behind NAT/firewalls, the trusted EDGE initiates the secure management path outward. Only then does the platform apply Talos machine configuration, establish Kubernetes and deliver workloads.
+
+**Engineering depth if challenged**
+
+Explain Secure Boot versus measured boot, TPM evidence/attestation, operational certificates, WireGuard peer identity, Talos API access and the separation between machine provisioning and workload GitOps.
+
+### Reframed Question 2 answer
+
+**Executive layer**
+
+> A central management outage must not automatically become a customer-service outage. The EDGE continues serving from its last-known-good local state, while operations requiring the central platform pause safely.
+
+**Architect layer**
+
+> I separate the service plane from the management plane. Kubernetes, workloads and required local dependencies continue locally for the designed disconnected window. New rollouts, configuration changes and central administrative actions stop; telemetry can buffer or lose central export depending on the observability design. Credential lifetime, storage, DNS and application dependencies must support that offline period.
+
+**Engineering depth if challenged**
+
+Discuss local control-plane dependencies, certificate expiry/runway, telemetry buffering, storage behavior and reconnection/reconciliation.
+
+### Reframed Question 3 answer
+
+**Executive layer**
+
+> At thousands of remote sites, I want the EDGE to behave like a managed appliance rather than a collection of individually administered Linux servers. Talos gives us an immutable, API-managed Kubernetes operating model that reduces mutable host state and configuration drift.
+
+**Architect layer**
+
+> That model fits remote EDGE operations because routine SSH administration is removed and machine state can be managed declaratively. The trade-off is less freedom for ad-hoc host modification and shell-based troubleshooting, so the organization must be comfortable operating through Talos APIs, evidence collection, reconciliation and recovery patterns.
+
+**Engineering depth if challenged**
+
+Then explain Talos API operations, machine configuration, upgrade/recovery mechanisms and how troubleshooting works without SSH.
+
+### Improvement target for Interview 2
+
+Do not try to sound less technical.
+
+Instead, demonstrate **control over depth**:
+
+**Executive first → architect reasoning second → engineering proof only when needed.**
+
+The next interview should explicitly assess whether this sequencing happens naturally without prompting.
