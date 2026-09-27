@@ -620,3 +620,28 @@ The station needs approved hardware profiles, OEM public trust roots, approved T
 The ISO is temporary boot media; the installer runs in the EDGE environment and writes installed Talos to its SSD. On the chosen Secure Boot path a signed UKI is a boot artifact on the installed system. EDGE UEFI verifies allowed boot code against its configured trust databases; the TPM records measurements that can later support attestation. Exact Talos release/artifacts, UEFI key-enrollment process, bootstrap configuration delivery, negative test, evidence policy and station automation remain to be worked through step by step.
 
 Next learning checkpoint: factory provisioning station assumptions and the EDGE-side execution boundary, then the UEFI/Secure Boot fundamentals. Do not infer the exact Talos procedure from this architecture-level outline.
+
+
+---
+
+## 2026-09-27 — Step 2 diagram correction and Mermaid convention
+
+The simplified station arrow omitted the actual boot and network boundary. In the chosen lab/factory learning model, an operator inserts Talos USB media, connects wired Ethernet, and powers on the EDGE. Temporary Talos requests a staging IP via DHCP and enters maintenance mode without machine configuration. The station connects to the observed EDGE address and supplies the approved configuration or job. No automatic factory Wi-Fi or automatic provisioning-server discovery is assumed. The way the station associates the observed IP with the scanned physical unit and authorizes first contact remains an open design decision.
+
+**Step 2: Boot and Connect**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as Factory operator
+    participant EDGE as EDGE temporary Talos
+    participant DHCP as Staging DHCP
+    participant STN as Provisioning station
+    OP->>EDGE: Insert USB, connect Ethernet, power on
+    EDGE->>DHCP: Request staging IP
+    DHCP-->>EDGE: Provide IP
+    STN->>EDGE: Connect to observed IP
+    STN->>EDGE: Supply approved configuration/job
+```
+
+For future entries, express process, architecture, state and interaction diagrams as Mermaid. Historical text diagrams remain as originally recorded under this file's append-only rule; this dated correction supersedes the earlier simplified Step 2 picture. The stable overview and station sub-topic diagrams have been corrected.
