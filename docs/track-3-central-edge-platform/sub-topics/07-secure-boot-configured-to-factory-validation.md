@@ -1,20 +1,22 @@
-# Secure Boot Configured to Factory Validation
+# Secure Boot Configured → Factory Validation
 
-**Status:** Planned learning sub-topic.
+**Status:** Test ownership model established; thresholds and evidence format pending.
 
-## Transition
+## Use case
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `SecureBootConfigured` | `FactoryValidation` | Provisioning and validation systems | Factory staging facility and EDGE |
+The station commands a test reboot. EDGE UEFI checks the signed boot artifact, EDGE Talos boots and exposes health. EDGE TPM can quote measured PCR values. The station and validation service compare this evidence with policy and record a result. The provisioning server cannot test firmware enforcement, TPM possession or Talos health solely by testing itself.
 
-The provisioning system causes the EDGE to reboot. UEFI verifies the signed
-boot artifact, Talos starts, and the factory gathers hardware, TPM, boot,
-storage and network evidence from the EDGE.
+| Test | Runs or originates on | Assessed by |
+| --- | --- | --- |
+| Artifact/version and station policy | Factory infrastructure | Station/validation service |
+| Signature enforcement and boot outcome | EDGE UEFI | Station from observed result and firmware state |
+| TPM identity and measured boot evidence | EDGE TPM, requested by EDGE-side agent | Verifier under approved policy |
+| Talos, SSD and NIC health | EDGE Talos/hardware | Validation service from EDGE observations |
 
-## Topics to complete
+A TPM quote needs a nonce and policy comparison; a quote alone is not proof of an approved boot. A successful Talos API response alone is not proof that Secure Boot was enabled. Record the EDGE-ID, station, artifact version, firmware policy, test times and failures.
 
-- Factory acceptance-test specification
-- Secure Boot and TPM evidence
-- Talos, storage and network health checks
-- Evidence retention and retry policy
+**Exit evidence:** signed boot succeeds with Secure Boot enabled, approved identity/measurements and hardware/OS tests pass. The following transitions make the final `ReadyToShip` or `Quarantined` decision.
+
+## To study next
+
+Negative boot test, PCR policy/version changes, offline factory operation, retry limits, evidence retention and repair authorization.
