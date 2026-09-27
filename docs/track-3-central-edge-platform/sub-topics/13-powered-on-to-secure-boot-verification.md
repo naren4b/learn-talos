@@ -1,19 +1,25 @@
-# Powered On to Secure Boot Verification
+# Boot Verification
 
-**Status:** Planned learning sub-topic.
+**Status:** Architecture discussion concluded; implementation acceptance pending.
 
-## Transition
+## Responsibility
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `PoweredOn` | `SecureBootVerification` | EDGE UEFI | EDGE motherboard at customer site |
+EDGE firmware and the signed boot chain verify authorized executable boot components.
 
-UEFI begins the boot process and verifies the signature of the Talos boot
-artifact against the trusted public information enrolled at the factory.
+## Standard procedure
 
-## Topics to complete
+1. UEFI evaluates the selected EFI bootloader against enrolled allow and revocation policy.
+2. The boot chain verifies the signed UKI; UKI packages kernel, initramfs and boot arguments.
+3. Measurements extend TPM PCRs separately from signature enforcement.
 
-- UEFI boot sequence
-- Secure Boot trust and signature verification
-- Relationship among UKI, UEFI and TPM measurements
-- Observable success and failure evidence
+## Completion evidence
+
+Expected firmware state plus validated boot results; PCR evidence only through an implemented verifier.
+
+## Failure and recovery
+
+Rejected boot components cannot proceed on that path; central timeout alone cannot diagnose Secure Boot failure.
+
+**TODO:<Question>** Test actual firmware enforcement and approved recovery on the chosen hardware.
+
+See [consolidated factory workflow](01-factory-provisioning.md) and [open questions](../open-topic.md). These are proposed operating requirements, not completed tests.
