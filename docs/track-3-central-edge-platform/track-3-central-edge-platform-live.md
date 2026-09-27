@@ -374,3 +374,88 @@ Resume slowly from this unresolved question:
 
 Do not proceed to detailed customer-site enrollment or remote provisioning
 until this artifact flow is understood in a simple physical sequence.
+
+
+---
+
+## 2026-09-27 — Clarification: Provisioning sources and locations
+
+The diagram added in commit `54dfb90` showed the sequence but did not clearly
+identify where each system lives or where each identity/artifact originates.
+The historical diagram remains unchanged under the append-only rule. This
+checkpoint adds the clarified version.
+
+### Source and location map
+
+| Item | Source | Location after creation |
+| --- | --- | --- |
+| Hardware serial and TPM/EK | Hardware/TPM manufacturer | EDGE hardware; public details copied to fleet inventory |
+| EDGE-ID | Fleet inventory | Central management platform |
+| Attestation Key | Generated inside the EDGE TPM | Private key remains in TPM; public key copied to fleet inventory |
+| Operational key | Generated inside the EDGE TPM | Private key remains in TPM; public key copied to fleet inventory |
+| Signed Talos artifact | Central image and signing pipeline | Artifact repository, then installed on the EDGE SSD |
+| Secure Boot public trust | Central signing system | Enrolled into the EDGE UEFI trust database |
+| Validation result | Staging validation service | Fleet inventory |
+
+### Provisioning sequence with locations
+
+**Provisioning Sources and Locations**
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant OEM as Supplier - OEM site
+    participant STN as Provisioning station - staging facility
+    participant TPM as TPM - inside EDGE
+    participant UEFI as UEFI - EDGE motherboard
+    participant SSD as SSD - inside EDGE
+    participant SIGN as Image and signing - central platform
+    participant INV as Fleet inventory - central platform
+    participant QA as Validation - staging facility
+
+    OEM->>STN: Deliver cold hardware with serial and TPM
+    STN->>TPM: Read manufacturer EK public information
+    TPM-->>STN: Return EK public data
+    STN->>INV: Create hardware record
+    INV-->>STN: Allocate EDGE-ID
+
+    STN->>TPM: Generate non-exportable Attestation Key
+    TPM-->>STN: Return AK public key only
+    STN->>TPM: Generate non-exportable operational key
+    TPM-->>STN: Return operational public key only
+    STN->>INV: Store EK, AK and operational public information
+
+    Note over TPM,INV: Private keys remain inside the EDGE TPM
+
+    STN->>SIGN: Fetch approved signed Talos artifact and public trust
+    SIGN-->>STN: Return artifact, checksum and public certificate
+    STN->>SSD: Install approved Talos artifact
+    STN->>UEFI: Enrol Secure Boot public trust
+
+    STN->>QA: Request factory acceptance test
+    QA->>TPM: Read security state and measurements
+    TPM-->>QA: Return measured state
+
+    alt Validation passes
+        QA->>INV: Record evidence and READY_TO_SHIP
+    else Validation fails
+        QA->>INV: Record reason and QUARANTINED
+    end
+```
+
+The four physical boundaries are now explicit:
+
+```text
+Supplier site
+    -> supplies cold hardware and manufacturer identity
+
+Staging facility
+    -> provisions and validates the EDGE
+
+Inside the EDGE
+    -> TPM protects private keys, UEFI holds boot trust, SSD holds Talos
+
+Central platform
+    -> signs/publishes artifacts and stores fleet public information
+```
