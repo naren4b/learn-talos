@@ -645,3 +645,14 @@ sequenceDiagram
 ```
 
 For future entries, express process, architecture, state and interaction diagrams as Mermaid. Historical text diagrams remain as originally recorded under this file's append-only rule; this dated correction supersedes the earlier simplified Step 2 picture. The stable overview and station sub-topic diagrams have been corrected.
+
+
+---
+
+## 2026-09-27 — Step 5 parked: TPM identity access
+
+**TODO:<Question>** On Talos v1.14.1, can an unconfigured EDGE in maintenance mode expose its TPM EK public key and manufacturer certificate, create or use an AK, and provide a verifiable EK–AK binding through documented Talos API/`talosctl` operations? If not, what controlled factory boot environment or OEM identity handoff performs these operations before Talos installation? Verify with official documentation/source and a physical TPM PoC before selecting the workflow.
+
+The OneUptime TPM article discusses detecting a TPM and TPM-backed disk encryption. The official Talos 1.14 disk-encryption guide documents LUKS2 keys sealed to TPM PCR policy (default PCR 7), using `VolumeConfig`. Neither source establishes an EK certificate read, AK creation or EK–AK proof through the unconfigured Talos maintenance API. Do not treat the earlier Step 5 sequence diagram as an implemented interface. Resume this question after checking Talos v1.14.1 APIs/source and a physical TPM PoC. Continue later learning with this dependency explicit.
+
+References: https://oneuptime.com/blog/post/2026-03-03-use-trusted-platform-module-tpm-with-talos-linux/view ; https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/storage-and-disk-management/disk-encryption
