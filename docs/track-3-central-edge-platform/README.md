@@ -89,3 +89,7 @@ The live file preserves the chronological learning and decision record. Append
 new dated checkpoints for corrections or changed understanding; never clean up
 historical entries in place. Stable conclusions can be refined in this README
 and expanded into focused documents under `sub-topics/`.
+
+## Factory use-case navigation
+
+Every state change in the factory-to-customer journey has its own Markdown file in the [sub-topic index](sub-topics/README.md). The [factory station use case](sub-topics/16-factory-provisioning-station.md) explains the shared station workflow; transitions 03–07 now have concrete responsibilities and evidence boundaries. Later transitions remain learning outlines pending discussion.
