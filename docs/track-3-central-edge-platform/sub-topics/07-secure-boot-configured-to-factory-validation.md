@@ -20,3 +20,7 @@ A TPM quote needs a nonce and policy comparison; a quote alone is not proof of a
 ## To study next
 
 Negative boot test, PCR policy/version changes, offline factory operation, retry limits, evidence retention and repair authorization.
+
+## Architecture closure — 2026-09-27
+
+This sub-topic's responsibility boundary is concluded for the current learning pass. The [consolidated factory workflow](01-factory-provisioning.md) supplies the corrected shared-preparation/per-EDGE sequence. UEFI trust precedes the Secure Boot installation environment; SSD reboot verifies enforcement again. Implementation questions remain in [open-topic.md](../open-topic.md), and no unperformed test is marked successful.
