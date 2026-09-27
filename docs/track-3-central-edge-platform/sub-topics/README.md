@@ -20,7 +20,7 @@ transition is studied. The overview remains the end-to-end map.
 | `DeliveredToFactory → FactoryProvisioning` | [Factory intake and hardware acceptance](03-delivered-to-factory-provisioning.md) |
 | `FactoryProvisioning → IdentityRegistered` | [TPM identity and fleet registration](04-factory-provisioning-to-identity-registered.md) |
 | `IdentityRegistered → TalosInstalled` | [Talos artifact selection and installation](05-identity-registered-to-talos-installed.md) |
-| `TalosInstalled → SecureBootConfigured` | [UEFI Secure Boot trust provisioning](06-talos-installed-to-secure-boot-configured.md) |
+| UEFI trust preparation before installation; verification after SSD boot | [UEFI Secure Boot trust provisioning](06-talos-installed-to-secure-boot-configured.md) |
 | `SecureBootConfigured → FactoryValidation` | [Factory validation and evidence](07-secure-boot-configured-to-factory-validation.md) |
 | `FactoryValidation → ReadyToShip` | [Release approval and ready-to-ship evidence](08-factory-validation-to-ready-to-ship.md) |
 | `FactoryValidation → Quarantined` | [Provisioning failure and quarantine](09-factory-validation-to-quarantined.md) |
@@ -39,3 +39,10 @@ discussed and understood.
 
 - [Provisioning station: one EDGE job](16-factory-provisioning-station.md) covers station configuration, known inputs, security boundaries, manual lab versus automated line, and where each test executes.
 - Files [03](03-delivered-to-factory-provisioning.md) through [07](07-secure-boot-configured-to-factory-validation.md) now contain the corresponding intake, identity, Talos installation, UEFI trust and validation use cases. Files 02 and 08–15 retain their scoped outlines until studied.
+
+## NEN architecture notes
+
+- [17 — NEN trust and certificate issuance](17-nen-trust-and-certificate-issuance.md)
+- [18 — NEN factory to branch activation](18-nen-factory-to-branch-activation.md)
+
+Use the corrected Secure Boot ordering in file 06; numeric file order is a learning index, not an executable runbook. Parked questions remain in [open-topic.md](../open-topic.md).
