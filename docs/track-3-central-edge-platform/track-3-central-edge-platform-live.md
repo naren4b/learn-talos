@@ -1010,3 +1010,134 @@ Production architecture remains designed for 1,000+ EDGE sites: availability, tr
 KIND is the inexpensive hands-on environment. It can exercise central-service enrollment, authorization, reconciliation and failure workflows. It cannot establish real TPM protection, UEFI Secure Boot enforcement, physical failure-domain independence or production fleet capacity. Those require separate representative validation.
 
 The next step is to map these requirements to FOSS services, identify NEN-specific integration/code and select the first end-to-end lab. All preceding workflows remain proposals until implemented and tested.
+
+
+---
+
+## 2026-09-27 — NEN PKI lab: Root CA and issuing-CA request
+
+### Learning checkpoint
+
+The user confirmed: “I understood the commands.” Work proceeded one command at a time in the user's Ubuntu WSL environment. Commands below are the instructional record; the assistant did not execute them against the user's workstation. No private-key contents or passphrases are recorded.
+
+### Root CA key creation and initial error
+
+The first encrypted-key generation attempt failed because the passphrase was empty or shorter than OpenSSL's accepted minimum. The reported error included “result too small” and “You must type in 4 to 1024 characters.”
+
+Correction: rerun the command, supply and confirm a strong passphrase, and remember terminal password input is invisible. The user acknowledged successful continuation.
+
+Lab directory preparation:
+
+```bash
+mkdir -p ~/nen-pki-lab
+cd ~/nen-pki-lab
+umask 077
+```
+
+Generate the encrypted Root CA private key:
+
+```bash
+openssl genpkey \
+  -algorithm RSA \
+  -pkeyopt rsa_keygen_bits:4096 \
+  -aes-256-cbc \
+  -out nen-root-ca.key.pem
+```
+
+The user was then instructed to check the key:
+
+```bash
+openssl pkey -in nen-root-ca.key.pem -check -noout
+```
+
+Expected result: `Key is valid`. The user requested the next step; the exact check output was not pasted.
+
+### Self-signed Root CA certificate
+
+```bash
+openssl req -new -x509 \
+  -key nen-root-ca.key.pem \
+  -sha256 \
+  -days 3650 \
+  -subj "/O=Naren Edge Networks/CN=NEN Root CA" \
+  -addext "basicConstraints=critical,CA:TRUE,pathlen:1" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign" \
+  -addext "subjectKeyIdentifier=hash" \
+  -out nen-root-ca.cert.pem
+```
+
+The certificate uses the root's own private key for its signature. `CA:TRUE` identifies a CA certificate; `pathlen:1` allows one subordinate CA level in the intended chain. The public certificate may be distributed as a trust anchor; the encrypted private key stays protected.
+
+Inspection:
+
+```bash
+openssl x509 \
+  -in nen-root-ca.cert.pem \
+  -noout -subject -issuer -dates
+```
+
+Actual output supplied by the user:
+
+```text
+subject=O = Naren Edge Networks, CN = NEN Root CA
+issuer=O = Naren Edge Networks, CN = NEN Root CA
+notBefore=Sep 27 09:26:17 2026 GMT
+notAfter=Sep 24 09:26:17 2036 GMT
+```
+
+This confirms the displayed identity and validity dates. A separate cryptographic signature/chain verification was not yet shown.
+
+### Device Issuing CA private key
+
+Next command provided; the user responded “yes”:
+
+```bash
+openssl genpkey \
+  -algorithm RSA \
+  -pkeyopt rsa_keygen_bits:4096 \
+  -aes-256-cbc \
+  -out nen-device-ca.key.pem
+```
+
+This is a separate encrypted private key for the issuing CA, with its own passphrase. Its future purpose is to sign EDGE identity certificates.
+
+### Device Issuing CA certificate request
+
+The last command explained was:
+
+```bash
+openssl req -new \
+  -key nen-device-ca.key.pem \
+  -subj "/O=Naren Edge Networks/CN=NEN Device Issuing CA" \
+  -out nen-device-ca.csr.pem
+```
+
+The CSR carries the proposed issuing-CA identity and public key and is signed by its own private key. It is a request, not an issued CA certificate. The user confirmed understanding; no CSR output or independent validation was supplied.
+
+### Current artifacts and exact resume point
+
+| Artifact | Purpose / evidence status |
+| --- | --- |
+| nen-root-ca.key.pem | Encrypted root private key; creation acknowledged |
+| nen-root-ca.cert.pem | Self-signed root certificate; subject/issuer/dates inspected by user |
+| nen-device-ca.key.pem | Encrypted issuing-CA private key; creation acknowledged |
+| nen-device-ca.csr.pem | CSR command supplied and understood; validate before signing |
+| nen-device-ca.cert.pem | Not yet issued in this session |
+
+Resume one command at a time: confirm/verify the CSR, prepare issuing-CA certificate extensions (including CA constraints), sign with the NEN Root CA, then verify the chain. No EDGE certificate has been created in this lab yet.
+
+### Certificate-chain understanding
+
+The root signs the issuing CA certificate; the Device Issuing CA signs EDGE certificates. In a full mutual TLS handshake, the EDGE presents its certificate and intermediate chain, while the NEN service presents its own service certificate and chain. Trust in the root must already have been securely established; receiving a root from a peer does not make it trusted. Private keys do not travel with certificates.
+
+**NEN Device Chain**
+
+```mermaid
+flowchart LR
+    ROOT["NEN Root CA"] -->|"Signs CA certificate"| ISSUER["Device Issuing CA"]
+    ISSUER -->|"Signs device certificate"| EDGE["EDGE-001"]
+```
+
+This identity PKI remains separate from NEN's UEFI Secure Boot signing arrangement.
+
+Reference: [OpenSSL certificate/request generation](https://docs.openssl.org/3.5/man1/openssl-req/).
