@@ -1,19 +1,25 @@
-# Secure Boot Verification to Bootstrap Started
+# Bootstrap Handoff
 
-**Status:** Planned learning sub-topic.
+**Status:** Architecture discussion concluded; implementation acceptance pending.
 
-## Transition
+## Responsibility
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `SecureBootVerification` | `BootstrapStarted` | EDGE UEFI and Talos | Customer EDGE |
+Successful signed boot starts installed Talos; NEN activation is a separate integration.
 
-UEFI accepts the signed artifact, transfers execution to Talos, and the trusted
-customer-site bootstrap path begins.
+## Standard procedure
 
-## Topics to complete
+1. Load minimum network settings and securely provisioned NEN service trust.
+2. Proposed bootstrap software initiates outbound authenticated communication through NAT.
+3. NEN checks EDGE identity, lifecycle and site assignment before releasing configuration or secrets.
 
-- UEFI-to-UKI execution handoff
-- Talos startup state
-- Minimum bootstrap information and its storage
-- Transition to central enrollment
+## Completion evidence
+
+Authenticated contact, authorization decision and later configuration/health acknowledgement.
+
+## Failure and recovery
+
+A trusted boot does not prove branch authorization or application health; denied activation must not reveal site secrets.
+
+**TODO:<Question>** Choose bootstrap software, credential storage, TPM client support and configuration delivery.
+
+See [consolidated factory workflow](01-factory-provisioning.md) and [open questions](../open-topic.md). These are proposed operating requirements, not completed tests.
