@@ -34,3 +34,8 @@ transition is studied. The overview remains the end-to-end map.
 Each linked file now exists. Planned sections remain explicitly marked until
 the architecture, trust, evidence, failure behavior and recovery path have been
 discussed and understood.
+
+## Factory station use case
+
+- [Provisioning station: one EDGE job](16-factory-provisioning-station.md) covers station configuration, known inputs, security boundaries, manual lab versus automated line, and where each test executes.
+- Files [03](03-delivered-to-factory-provisioning.md) through [07](07-secure-boot-configured-to-factory-validation.md) now contain the corresponding intake, identity, Talos installation, UEFI trust and validation use cases. Files 02 and 08–15 retain their scoped outlines until studied.
