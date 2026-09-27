@@ -13,6 +13,10 @@ journey; Track-3 focuses on the central services that the fleet depends on.
 | [track-3-central-edge-platform-live.md](track-3-central-edge-platform-live.md) | Chronological transcript-like learning record. **Append only; never rewrite, reorder or restructure historical entries.** |
 | [sub-topics/](sub-topics/) | Focused notes derived from the Track-3 learning journey. |
 
+Current focused notes:
+
+- [Factory provisioning: cold hardware to customer power-on](sub-topics/01-factory-provisioning.md)
+
 ## Track structure
 
 ### Track-3A — FOSS reference implementation

@@ -459,3 +459,139 @@ Inside the EDGE
 Central platform
     -> signs/publishes artifacts and stores fleet public information
 ```
+
+
+---
+
+## 2026-09-27 — Correction: Provisioning interactions and EDGE state
+
+### Diagram correction
+
+The earlier factory sequence used self-directed provisioning-station arrows
+for installing Talos, enrolling Secure Boot trust and adding bootstrap
+information. Those arrows were misleading because the provisioning server
+orchestrates the actions, but the changes occur on components inside the EDGE.
+
+For production scale, the factory can operate a pool of similarly configured
+provisioning servers. Each server provisions one or more virgin EDGEs through
+the controlled staging network.
+
+The provisioning server does not perform all tests on itself. It instructs the
+EDGE, causes the EDGE to boot, and evaluates evidence returned by the EDGE:
+
+- Talos is installed on the EDGE SSD.
+- Secure Boot public trust is enrolled in the EDGE UEFI.
+- Private keys are generated and used inside the EDGE TPM.
+- UEFI performs boot-signature verification on the EDGE.
+- Talos, storage and network health are observed from the EDGE.
+- The provisioning and validation systems record the final decision.
+
+### Factory interaction diagram
+
+**Factory EDGE Interactions**
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant SUP as Supplier
+    participant PS as Factory Provisioning Server
+    participant TPM as EDGE TPM
+    participant UEFI as EDGE UEFI
+    participant SSD as EDGE SSD
+    participant INV as Central Fleet Inventory
+    participant CUST as Customer
+
+    SUP->>PS: Deliver virgin EDGE hardware
+    PS->>PS: Inspect model, serial and components
+
+    PS->>TPM: Read manufacturer identity
+    TPM-->>PS: Return EK public information
+    PS->>TPM: Generate AK and operational keys
+    TPM-->>PS: Return public keys only
+    PS->>INV: Create EDGE-ID and register public identities
+
+    PS->>SSD: Install approved signed Talos
+    PS->>UEFI: Enrol Secure Boot public trust
+    PS->>SSD: Add minimum bootstrap information
+
+    PS->>UEFI: Request test reboot
+    UEFI->>SSD: Read signed Talos boot artifact
+    SSD-->>UEFI: Return signed boot artifact
+    UEFI->>UEFI: Verify artifact signature
+    UEFI->>SSD: Allow Talos to start
+
+    PS->>TPM: Request security evidence
+    TPM-->>PS: Return identity and measurement evidence
+    PS->>SSD: Check Talos, storage and network health
+    SSD-->>PS: Return health results
+
+    PS->>INV: Mark EDGE READY_TO_SHIP
+    PS-->>CUST: Ship provisioned EDGE
+
+    CUST->>UEFI: Power on at customer site
+    UEFI->>SSD: Verify and start signed Talos
+```
+
+The diagram uses TPM, UEFI and SSD as separate EDGE participants so that every
+factory action shows its real target. The provisioning server is the
+orchestrator; it is not the destination of EDGE configuration changes.
+
+### EDGE lifecycle state diagram
+
+**Factory to Customer States**
+
+```mermaid
+stateDiagram-v2
+    [*] --> Manufactured
+
+    Manufactured --> DeliveredToFactory: Supplier delivers EDGE
+    DeliveredToFactory --> FactoryProvisioning: Factory accepts hardware
+
+    FactoryProvisioning --> IdentityRegistered: Register TPM identity
+    IdentityRegistered --> TalosInstalled: Install Talos on EDGE SSD
+    TalosInstalled --> SecureBootConfigured: Enrol trust in EDGE UEFI
+    SecureBootConfigured --> FactoryValidation: Reboot and test EDGE
+
+    FactoryValidation --> ReadyToShip: All tests pass
+    FactoryValidation --> Quarantined: Required test fails
+
+    ReadyToShip --> Shipped: Send EDGE to customer
+    Shipped --> InstalledAtCustomer: Connect network and power
+    InstalledAtCustomer --> PoweredOn: Customer powers on EDGE
+
+    PoweredOn --> SecureBootVerification: UEFI verifies Talos
+    SecureBootVerification --> BootstrapStarted: Signature trusted
+    SecureBootVerification --> BootBlocked: Signature untrusted
+```
+
+### Physical journey
+
+```text
+Supplier
+    ↓ virgin hardware
+Factory provisioning environment
+    ↓ provisioned and tested hardware
+Customer site
+    ↓ customer powers on
+EDGE UEFI verifies Talos
+    ↓
+Bootstrap begins
+```
+
+The exact storage and delivery mechanism for minimum bootstrap information is
+still an open implementation detail. It must be resolved only after the ISO,
+installer, installed Talos and UKI artifact flow is understood.
+
+### Sub-topic organization decision
+
+The factory-to-customer diagram is the lifecycle overview. Each meaningful
+state transition will receive a separate focused sub-topic after it is studied,
+including the failure branches to `Quarantined` and `BootBlocked`. Detailed
+pages will not be generated speculatively; they will capture the architecture,
+trust, evidence, failure behavior and recovery path established during the
+learning discussion.
+
+The corresponding Markdown files `02` through `15` were created under
+`sub-topics/`. Each file defines the transition and current learning scope;
+details remain explicitly marked as planned until that state change is studied.
