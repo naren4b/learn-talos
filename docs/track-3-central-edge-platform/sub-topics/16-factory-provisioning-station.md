@@ -38,7 +38,7 @@ It does **not** hold TPM private keys or central image-signing/CA private keys. 
 | Step | Initiator | Where the work happens |
 | --- | --- | --- |
 | Scan and match hardware | Operator/station | Station checks records; EDGE exposes hardware facts |
-| Create identity keys | Station requests | EDGE-side environment calls EDGE TPM |
+| Create identity keys (parked) | Station requests | EDGE-side TPM environment and API not yet selected |
 | Install Talos | Station supplies approved job/artifacts | EDGE temporary Talos environment runs installer on EDGE SSD |
 | Set boot trust | Authorized station workflow | EDGE UEFI changes its own Secure Boot state/databases |
 | Reboot and validate | Station triggers and evaluates | EDGE UEFI, TPM, Talos and hardware perform the checks |
@@ -52,5 +52,7 @@ The station cannot infer successful Secure Boot or Talos health just from its ow
 - Artifacts are prepared and signed by a central pipeline before the station fetches them.
 - Provisioning concurrency, network outages, duplicate inventory claims and partial installs need idempotent job handling and quarantine rules.
 - Exact automation machinery (USB, PXE/network boot, fixture or conveyor), Talos commands, UEFI enrollment procedure, evidence policy and security of the initial EDGE-side environment remain to be selected and tested.
+
+**TODO:<Question>** On Talos v1.14.1, can an unconfigured EDGE in maintenance mode expose its TPM EK public key and manufacturer certificate, create or use an AK, and provide a verifiable EK–AK binding through documented Talos API/`talosctl` operations? If not, what controlled factory boot environment or OEM identity handoff performs these operations before Talos installation? Verify with official documentation/source and a physical TPM PoC before selecting the workflow.
 
 Follow the state-specific files [03](03-delivered-to-factory-provisioning.md), [04](04-factory-provisioning-to-identity-registered.md), [05](05-identity-registered-to-talos-installed.md), [06](06-talos-installed-to-secure-boot-configured.md) and [07](07-secure-boot-configured-to-factory-validation.md) for the transitions.
