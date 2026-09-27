@@ -1,25 +1,21 @@
-# Factory Provisioning to Identity Registered
+# Factory Provisioning → Identity Registered
 
-**Status:** Initial mental model captured; implementation details pending.
+**Status:** Responsibility and trust model captured; credential protocol pending.
 
-## Transition
+## Use case
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `FactoryProvisioning` | `IdentityRegistered` | Provisioning server, EDGE TPM and fleet inventory | Factory and central platform |
+An accepted virgin EDGE is connected to an authorized factory station. The station coordinates TPM operations through a trusted booted environment on the EDGE, validates manufacturer evidence under policy, allocates an EDGE-ID and registers public identity information centrally.
 
-The provisioning server reads the TPM manufacturer identity, asks the EDGE TPM
-to create non-exportable attestation and operational keys, and registers only
-their public information against the allocated EDGE-ID.
+| Operation | Executor and location | Evidence returned |
+| --- | --- | --- |
+| Inspect EK certificate/public identity | TPM/EDGE responds; station verifies issuer and policy | Manufacturer public identity and validation result |
+| Create AK and operational key | EDGE TPM via EDGE-side software | Public keys and proof of possession; private keys remain TPM protected |
+| Bind EDGE-ID to hardware | Central inventory, requested by station | Inventory record, station and audit metadata |
 
-## Required boundary
+The station knows approved OEM trust roots, hardware policy, enrollment endpoint and its own scoped station credential. It must not know or store TPM private keys or the central CA/image-signing private keys. A public EK alone does not prove that the caller controls that TPM: design a challenge/proof and validate the AK binding before declaring identity registered. Whether an operational certificate is issued here or after customer enrollment remains a deliberate policy decision.
 
-Private EK, AK and operational key material must not be copied into fleet
-inventory or onto the provisioning server.
+**Exit evidence:** unique EDGE-ID, verified manufacturer identity under the chosen policy, AK public identity and binding evidence, auditable station action. Failed proof, duplicate serial/EK or unsupported TPM enters quarantine.
 
-## Topics to complete
+## To study next
 
-- EK certificate validation
-- AK creation and binding evidence
-- Operational certificate issuance
-- Rotation, revocation and replacement
+EK certificate availability and trust roots; AK certification/challenge protocol; enrollment authorization; credential lifecycle, revocation and hardware replacement.
