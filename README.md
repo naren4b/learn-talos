@@ -50,11 +50,20 @@ not depend on Omni or another paid fleet-management platform.
 
 ## Central EDGE platform track
 
-Track 3 designs the central management platform needed to operate 1,000+
-customer-premise EDGE sites. It begins with a local FOSS reference
-implementation and later maps the same production-grade architecture to AWS.
+Track 3 records the central management architecture for 1,000+ customer-premise EDGE sites. Its current architecture-learning phase is concluded; practical implementation continues in Track 4. Open security and implementation questions remain tracked.
 
 - [Track-3 central EDGE platform](docs/track-3-central-edge-platform/README.md)
+
+## NEN practical lab track
+
+[Track-4 — NEN Control, Factory and EC2 EDGE Lab](docs/track-4-nen-control-factory-ec2-lab/README.md) is the active practical continuation.
+
+- [Track-4A — NEN Control Data Center & Factory](docs/track-4-nen-control-factory-ec2-lab/track-4a-control-and-factory.md): FOSS services, initial WSL/KIND baseline.
+- [Track-4B — EDGE on EC2](docs/track-4-nen-control-factory-ec2-lab/track-4b-edge-on-ec2.md): Talos virtual EDGE and fleet integration.
+- [Phase 0 — baseline and topology](docs/track-4-nen-control-factory-ec2-lab/phase-0-baseline.md).
+- [Append-only lab record](docs/track-4-nen-control-factory-ec2-lab/track-4-nen-lab-live.md).
+
+Track created; infrastructure not yet provisioned. Track-2 remains paused.
 
 ## Working conventions
 
