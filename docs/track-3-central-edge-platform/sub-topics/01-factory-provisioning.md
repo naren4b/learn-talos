@@ -33,45 +33,24 @@ changes occur on components inside the EDGE.
 ```mermaid
 sequenceDiagram
     autonumber
-
-    participant SUP as Supplier
-    participant PS as Factory Provisioning Server
+    participant OP as Factory operator
+    participant EDGE as EDGE temporary Talos
+    participant NET as Staging DHCP
+    participant STN as Provisioning station
     participant TPM as EDGE TPM
-    participant UEFI as EDGE UEFI
     participant SSD as EDGE SSD
-    participant INV as Central Fleet Inventory
-    participant CUST as Customer
-
-    SUP->>PS: Deliver virgin EDGE hardware
-    PS->>PS: Inspect model, serial and components
-
-    PS->>TPM: Read manufacturer identity
-    TPM-->>PS: Return EK public information
-    PS->>TPM: Generate AK and operational keys
-    TPM-->>PS: Return public keys only
-    PS->>INV: Create EDGE-ID and register public identities
-
-    PS->>SSD: Install approved signed Talos
-    PS->>UEFI: Enrol Secure Boot public trust
-    PS->>SSD: Add minimum bootstrap information
-
-    PS->>UEFI: Request test reboot
-    UEFI->>SSD: Read signed Talos boot artifact
-    SSD-->>UEFI: Return signed boot artifact
-    UEFI->>UEFI: Verify artifact signature
-    UEFI->>SSD: Allow Talos to start
-
-    PS->>TPM: Request security evidence
-    TPM-->>PS: Return identity and measurement evidence
-    PS->>SSD: Check Talos, storage and network health
-    SSD-->>PS: Return health results
-
-    PS->>INV: Mark EDGE READY_TO_SHIP
-    PS-->>CUST: Ship provisioned EDGE
-
-    CUST->>UEFI: Power on at customer site
-    UEFI->>SSD: Verify and start signed Talos
+    OP->>EDGE: Insert USB, connect Ethernet, power on
+    EDGE->>NET: Request staging IP
+    NET-->>EDGE: Provide IP
+    STN->>EDGE: Connect and supply approved job
+    EDGE->>TPM: Perform authorized key operations
+    TPM-->>EDGE: Return public identity evidence
+    EDGE->>SSD: Run installer on selected disk
+    EDGE-->>STN: Report identity and install results
+    STN->>STN: Evaluate evidence and record outcome
 ```
+
+This shows the EDGE-side execution boundary. UEFI trust enrollment and post-install reboot are separate state transitions; see [06](06-talos-installed-to-secure-boot-configured.md) and [07](07-secure-boot-configured-to-factory-validation.md).
 
 ## Lifecycle model
 
@@ -115,16 +94,12 @@ lifecycle state.
 
 ## Factory outcome
 
-```text
-Supplier
-    ↓ virgin hardware
-Factory provisioning environment
-    ↓ provisioned and tested hardware
-Customer site
-    ↓ customer powers on
-EDGE UEFI verifies Talos
-    ↓
-Bootstrap begins
+```mermaid
+flowchart TD
+    SUP["Supplier: virgin EDGE"] --> FAC["Factory: provision and validate"]
+    FAC --> CUST["Customer site: install and power on"]
+    CUST --> UEFI["EDGE UEFI: verify signed boot"]
+    UEFI --> BOOT["Talos bootstrap begins"]
 ```
 
 Passing factory validation produces `READY_TO_SHIP`. A required test failure
