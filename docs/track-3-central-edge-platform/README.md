@@ -1,5 +1,7 @@
 # Track-3 — Central Management Platform for 1,000+ EDGE Sites
 
+**Status — 2026-09-27:** Current architecture-learning track concluded. Active implementation continues in [Track-4 — NEN Control, Factory and EC2 EDGE Lab](../track-4-nen-control-factory-ec2-lab/README.md). Open implementation questions remain unresolved. The Track-3A/3B descriptions below preserve the original roadmap; the immediate FOSS lab now proceeds as Track-4A, with EC2 EDGE work as Track-4B.
+
 Track-3 designs and builds the central platform that enrolls, governs,
 observes and operates a fleet of 1,000+ EDGE sites on customer premises.
 Track-2 remains responsible for the EDGE-side trust, connectivity and lifecycle
