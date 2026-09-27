@@ -829,3 +829,184 @@ flowchart LR
 - [OpenSSL TLS and certificate introduction](https://docs.openssl.org/3.5/man7/ossl-guide-tls-introduction/)
 
 Current understanding: the user has confirmed the explanation of NEN issuing an EDGE certificate. Continue slowly from this checkpoint, preserving the two-phase NEN vision and the parked TPM implementation question.
+
+
+---
+
+## 2026-09-27 — Steps 8–27: Branch activation and fleet operations
+
+### Scope and evidence status
+
+The following captures the continued NEN learning conversation. These are proposed responsibilities and workflows, not claims of deployed services or stock Talos features. Step 5 TPM enrollment remains a black box, tracked in [open-topic.md](open-topic.md). Learning step numbers are separate from sub-topic filename numbers.
+
+### Step 8 — Mutual authentication
+
+The EDGE initiates a connection from behind branch NAT. In the proposed mTLS design, it verifies NEN's service certificate and NEN verifies the EDGE certificate and proof of private-key possession.
+
+The user asked why certificates must be exchanged when installed at provisioning. Clarification: existing certificates are presented for verification; no replacement certificate is issued during an ordinary handshake. NEN CA trust certificates let the EDGE verify NEN's service identity. The EDGE's own certificate identifies its public key. The live handshake proof establishes possession of the matching private key.
+
+Two signatures have different purposes:
+
+| Signature | Meaning |
+| --- | --- |
+| Issuing CA signature on EDGE certificate | NEN approved this public key for the EDGE identity |
+| EDGE signature during the TLS handshake | The connecting party controls that private key |
+
+Private keys are never transmitted. A certificate can be copied, but it alone cannot authenticate a connection. The TLS proof is bound to the current handshake. If a TPM-backed operational key is used, the client integration must invoke TPM signing; this integration is not yet implemented.
+
+Analogy used: an NEN employee ID card is the certificate; checking that its presenter matches the person on the card illustrates ownership verification. The cryptographic implementation uses signatures, not photographs.
+
+### Step 9 — Branch authorization
+
+After authentication, NEN checks the EDGE-ID, assigned Site-ID and lifecycle approval. Authentication alone does not authorize access to any branch's secrets. Unknown, revoked or unassigned devices receive no branch secrets.
+
+### Step 10 — Configuration and activation
+
+NEN supplies authorized branch networking, management connectivity, workload assignments and scoped credentials. Receipt is not completion: the EDGE applies settings, checks health and reports results. NEN declares Active only when the required acceptance checks pass. The component applying these settings and restart requirements remain open.
+
+**Branch Activation**
+
+```mermaid
+flowchart LR
+    BOOT["Boot installed Talos"] --> AUTH["Authenticate to NEN"]
+    AUTH --> SITE["Authorize branch assignment"]
+    SITE --> APPLY["Apply approved configuration"]
+    APPLY --> HEALTH["Report activation health"]
+```
+
+### Step 11 — Ongoing management
+
+The EDGE reports identity, Site-ID, software version, applied configuration and health. It initiates management connectivity through NAT; NEN can communicate over the established channel. Missed reports produce Unreachable after a defined timeout, not a claim that the hardware or local workloads have stopped.
+
+### Step 12 — Disconnected operation
+
+Proposed policy: continue eligible local workloads using the last successfully applied configuration while required resources and credentials remain usable. Retry outbound connectivity with increasing delays; bound telemetry buffering by storage limits. NEN displays last-contact time and queues desired changes.
+
+After reconnection, authenticate, recheck current authorization and reconcile actual state against desired state. Cloud-dependent applications may fail during an outage despite a healthy local platform.
+
+**TODO:<Question>** Define maximum offline duration, credential-expiry behavior, telemetry buffer limits and reconnect policy.
+
+### Step 13 — Gradual fleet updates
+
+Validate releases in the lab, then pilot sites, then wider waves. Require reconnection, expected version and workload health before expansion. Update one EDGE at a time at multi-EDGE branches only when remaining capacity can sustain service; single-EDGE sites may need downtime windows. Failed pilots halt expansion. Automatic rollback is not assumed.
+
+### Step 14 — Certificate renewal
+
+Request renewal before expiry. NEN verifies the device remains registered and approved before issuing a new certificate. Renewal can reuse a public key; key rotation creates a new key pair and certificate. Offline expiry requires a controlled recovery path rather than disabled certificate checks.
+
+**TODO:<Question>** Define credential lifetime, renewal timing, key rotation and expired-device recovery.
+
+### Step 15 — Block or retire a device
+
+Mark the EDGE Blocked/Retired, enforce denial in enrollment and management services, revoke credentials, and terminate active sessions where possible. Inventory status alone does not enforce access control. An offline device cannot be assumed to stop workloads or erase data immediately.
+
+### Step 16 — Replace a device
+
+A replacement gets its own EDGE-ID, private key and certificate. Authorize it for the existing Site-ID and restore approved configuration plus application data from backups or surviving replicas. Record the replacement relationship and prevent the old device regaining access. Talos reinstallation alone does not restore application data.
+
+### Step 17 — Data-center outage
+
+Eligible local workloads continue, new enrollment waits, and management operations retry. A recovery environment needs consistent inventory, assignments, credential status, configuration and signing-service recovery arrangements. EDGEs must authenticate the recovery endpoint. Simply starting another server is insufficient.
+
+### Step 18 — Central capabilities
+
+| Capability | NEN responsibility |
+| --- | --- |
+| Fleet inventory | EDGE/site identity, assignment, lifecycle and version records |
+| Enrollment and authorization | Verify devices and approve access |
+| PKI and credentials | Issue, renew and revoke certificates |
+| Image build/signing | Produce approved boot assets and releases |
+| Artifact registry | Distribute installers and workload packages |
+| Connectivity gateways | Accept EDGE-initiated connectivity |
+| Configuration/secrets delivery | Deliver authorized settings and credentials |
+| Fleet controller | Activation, reconciliation, rollout and retirement |
+| Observability/audit | Health, telemetry and administrative evidence |
+| Backup/recovery | Recover central state and required branch data |
+| Operator access | Staff roles, approvals and investigation |
+
+Capabilities may share a service initially; this is not a mandate for eleven independent applications.
+
+**TODO:<Question>** Decide whether multiple EDGEs at a site form a Kubernetes cluster or operate independently. Size the platform for concurrent enrollment, connections, updates and regional reconnect bursts.
+
+### Steps 19–20 — Inventory and field ownership
+
+Site records include location, assigned EDGEs and workload profile. EDGE records include hardware serial, site assignment, public identity references, lifecycle, desired/reported versions and last contact. Private keys and application secrets remain in their protected systems.
+
+| Actor | Authorized updates |
+| --- | --- |
+| Administrator | Site assignment and lifecycle approval |
+| Factory station | Hardware and provisioning evidence |
+| Fleet controller | Desired state and rollout progress |
+| Authenticated EDGE | Its observed version, applied configuration and health |
+| Monitoring service | Reachability and contact observations |
+
+A device cannot approve itself or assign itself to another site. A Site-ID association expresses authorization; it does not prove physical location. Desired configuration version 13 and reported version 12 must remain distinct until success is confirmed.
+
+### Step 21 — Reconciliation
+
+The controller compares desired and observed state, checks authorization/rollout eligibility, and coordinates changes. A timeout does not establish failure: inspect observed state before retrying because the response may have been lost after successful application.
+
+### Step 22 — EDGE-initiated upgrade work order
+
+The user clarified the desired model: EDGE initiates and executes the local upgrade; NEN publishes the approved target, maintenance window and permissions.
+
+The instruction is durable desired state, allowing an offline EDGE to retrieve it later. An expired window does not authorize immediate execution. The EDGE updater must be built or integrated; stock Talos polling NEN and scheduling upgrades is not established.
+
+| Work-order field | Purpose |
+| --- | --- |
+| Operation ID | Identify one logical upgrade across retries |
+| EDGE-ID | Limit the operation to the intended device |
+| Approved installer digest | Pin the artifact |
+| Maintenance window | Define allowed timing |
+| Preconditions | Branch capacity, backup and readiness gates |
+| Completion checks | Version, reconnect and workload health |
+
+**TODO:<Question>** Define whether a window limits start time or requires completion within the window.
+
+### Step 23 — Branch upgrade coordination
+
+Before starting, an EDGE requests an upgrade slot. NEN checks branch outage tolerance and grants only allowed concurrency. Other EDGEs wait. Confirm recovery before releasing capacity for another upgrade.
+
+A timer expiry must not be interpreted as proof that the first device recovered. The distributed permission mechanism, stale grants and lost connections require explicit implementation and testing.
+
+### Step 24 — Failed upgrade
+
+| Observation | Proposed response |
+| --- | --- |
+| Download fails before installation | Report and retry under policy |
+| Device reconnects unhealthy | Halt further branch upgrades and investigate |
+| Device does not reconnect | Record unknown outcome and begin recovery |
+
+Remote repair depends on remaining management access. Boot/connectivity failure can require branch personnel. Record the last completed stage and test rollback/recovery before promising automation.
+
+### Step 25 — Resume after updater restart
+
+Persist operation ID, target digest, last recorded stage and completion state. After reboot, read the operation record and inspect actual version/health. Report complete only when the target is running and passes checks.
+
+Correction to the earlier simplified claim: an operation ID alone does not prevent duplicate execution. Durable progress records and safe retry behavior are also required.
+
+**TODO:<Question>** Select and test durable updater storage that survives the relevant Talos upgrade/reboot path.
+
+### Step 26 — Reconnect bursts
+
+Thousands of EDGEs can reconnect together after a regional outage. Proposed controls: retry backoff with jitter, server admission limits and bounded concurrent downloads. Prioritize essential management and health over bulk upgrade transfers. Derive limits through representative load tests.
+
+### Step 27 — Three health levels
+
+| Level | What NEN measures |
+| --- | --- |
+| Connection | EDGE can communicate with NEN |
+| Platform | Talos, Kubernetes, storage and networking health |
+| Application | Branch can complete its required work |
+
+A heartbeat and healthy Kubernetes nodes do not prove application availability. Example: reachable EDGE and healthy nodes, but failed database-dependent application. Show separate health states and assign a meaningful workload check and response owner.
+
+## 2026-09-27 — Track-3A scope reaffirmed
+
+Track-3A remains the first implementation: FOSS components running locally on Ubuntu WSL with KIND where justified by requirements.
+
+Production architecture remains designed for 1,000+ EDGE sites: availability, trust boundaries, failure domains, scale, recovery, security, upgrade safety and Day-2 operations are not simplified because the lab is KIND.
+
+KIND is the inexpensive hands-on environment. It can exercise central-service enrollment, authorization, reconciliation and failure workflows. It cannot establish real TPM protection, UEFI Secure Boot enforcement, physical failure-domain independence or production fleet capacity. Those require separate representative validation.
+
+The next step is to map these requirements to FOSS services, identify NEN-specific integration/code and select the first end-to-end lab. All preceding workflows remain proposals until implemented and tested.
