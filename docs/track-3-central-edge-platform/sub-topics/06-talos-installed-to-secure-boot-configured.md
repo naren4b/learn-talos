@@ -1,4 +1,4 @@
-# Talos Installed → Secure Boot Configured
+# Secure Boot Trust Preparation and Verification
 
 **Status:** Fundamentals and responsibility boundary established; key enrollment method pending.
 
@@ -20,3 +20,18 @@ The private signing keys stay in protected signing infrastructure. Public certif
 ## To study next
 
 Talos-specific enrollment workflow and key hierarchy, OEM versus custom keys, dbx and revocation, signed update path, rollback and physical recovery.
+
+## Ordering correction — 2026-09-27
+
+The filename preserves existing links; its former transition label is superseded. For the Talos 1.14 Secure Boot path, enroll trust before running the Secure Boot installation environment. Install using a matching Secure Boot installer, then verify again after booting SSD. UEFI checks signed bootloader/UKI components, not a signature over the complete ISO.
+
+**Secure Boot Installation Order**
+
+```mermaid
+flowchart TD
+    TRUST["Prepare UEFI trust"] --> MEDIA["Boot Secure Boot media"]
+    MEDIA --> INSTALL["Install Talos on SSD"]
+    INSTALL --> REBOOT["Reboot and verify enforcement"]
+```
+
+See [NEN signing ownership](17-nen-trust-and-certificate-issuance.md). Source: [Talos 1.14 Secure Boot](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/secureboot).
