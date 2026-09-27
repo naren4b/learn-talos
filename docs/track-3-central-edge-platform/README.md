@@ -86,4 +86,15 @@ and expanded into focused documents under `sub-topics/`.
 
 ## Factory use-case navigation
 
-Every state change in the factory-to-customer journey has its own Markdown file in the [sub-topic index](sub-topics/README.md). The [factory station use case](sub-topics/16-factory-provisioning-station.md) explains the shared station workflow; transitions 03–07 now have concrete responsibilities and evidence boundaries. Later transitions remain learning outlines pending discussion.
+Every factory-to-first-boot transition has a focused Markdown file in the [complete sub-topic index](sub-topics/README.md). All 18 original sub-topics now contain architecture conclusions; implementation and acceptance evidence remain pending. The overview includes the consolidated block diagram and corrected factory sequence.
+
+## 2026-09-27 checkpoint
+
+- [Factory conclusion and diagrams](sub-topics/01-factory-provisioning.md): shared preparation, vendor intake, repeated per-EDGE work, tests and shipping.
+- [Trust and certificate ownership](sub-topics/17-nen-trust-and-certificate-issuance.md).
+- [Factory to branch activation](sub-topics/18-nen-factory-to-branch-activation.md).
+- [UKI, Secure Boot and PCR](sub-topics/19-uki-secure-boot-and-pcr.md).
+- [PKI evidence and planned VirtualBox lab](sub-topics/20-pki-and-virtualbox-lab-checkpoint.md).
+- [Data-center services and endpoint map](sub-topics/21-data-center-services-and-endpoints.md).
+
+Factory architecture learning is concluded. TPM enrollment, bootstrap integration, firmware recovery and acceptance tests remain [open](open-topic.md). The root-certificate inspection is recorded; issuing-CA signing and Secure Boot VM tests are not completed. Continue next with central-service requirements and the first FOSS end-to-end lab. Branch operations and upgrade learning remain recorded as Steps 8–27 in the live document.
