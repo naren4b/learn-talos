@@ -36,7 +36,7 @@ Questions deliberately parked during architecture learning. Each entry points to
 
 ## OT-04 — UEFI trust enrollment and recovery
 
-**Status:** Open · **Paused at:** `TalosInstalled → SecureBootConfigured`
+**Status:** Open · **Scope:** Trust preparation before installation and verification after SSD boot
 
 **TODO:<Question>** How does an authorized factory workflow enroll the required public UEFI Secure Boot trust on the chosen hardware, verify enforcement, rotate/revoke signing trust and recover from a bad enrollment?
 
@@ -56,4 +56,24 @@ Questions deliberately parked during architecture learning. Each entry points to
 
 ## Next revisit
 
-Resume at **OT-01** before treating `IdentityRegistered` as a working factory gate. The remaining lifecycle files [02–15](sub-topics/README.md) retain their own scoped questions as each transition is studied; this register tracks cross-cutting blockers and explicit parked decisions.
+Resume at **OT-01** before treating `IdentityRegistered` as a working factory gate. The concluded lifecycle notes [02–15](sub-topics/README.md) retain their scoped implementation questions; this register tracks cross-cutting blockers and explicit parked decisions.
+
+## OT-06 — Bootstrap and credential persistence
+
+**Status:** Open
+
+**TODO:<Question>** Which NEN bootstrap component runs on installed Talos, how does it use the EDGE-held private key and certificate, how are credentials retained across installation/upgrades, and how does it securely receive site configuration?
+
+**Close when:** Factory issuance through SSD reboot and authorized branch activation is demonstrated, including wrong-site denial and credential recovery.
+
+## OT-07 — VirtualBox Secure Boot lab
+
+**Status:** Open
+
+**TODO:<Question>** What exact VirtualBox firmware, trust enrollment, virtual TPM and signed-media workflow supports our chosen Talos release, and which results require physical hardware validation?
+
+**Close when:** Approved boot, rejected boot and recovery are demonstrated with recorded evidence. See [lab checkpoint](sub-topics/20-pki-and-virtualbox-lab-checkpoint.md).
+
+## Architecture closure — 2026-09-27
+
+The factory topic is concluded at the architecture-learning level. No open item is resolved by that closure. Certificate expiry/renewal, offline behavior, upgrade durability and central capacity questions remain recorded with Steps 8–27 in the live document; detailed operating policies are future implementation work.
