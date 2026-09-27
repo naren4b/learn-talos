@@ -1287,3 +1287,18 @@ The VirtualBox lab remains proposed, not executed. The PKI lab remains at issuin
 NEN central services and illustrative endpoints are captured in [the service map](sub-topics/21-data-center-services-and-endpoints.md). They are not deployed endpoints or a finalized product stack.
 
 All 18 existing sub-topics were consolidated; three focused notes were added and both indexes refreshed. Factory architecture learning is concluded. OT-01 through OT-07 and scoped implementation questions remain open. Next: central FOSS implementation requirements and the first end-to-end lab.
+
+
+---
+
+## 2026-09-27 — Track closure and practical handoff
+
+The user requested: close this track here and create a new lab track for (1) NEN Control Data Center & Factory and (2) EDGE on EC2.
+
+Track-3's current architecture-learning phase is concluded. Implementation, production readiness and parked security questions are not declared complete. Track-2 remains paused.
+
+The active continuation is [Track-4 — NEN Control, Factory and EC2 EDGE Lab](../track-4-nen-control-factory-ec2-lab/README.md). Track-4A carries the FOSS control/factory lab forward, initially retaining WSL/KIND. Track-4B uses EC2 for the EDGE. The future AWS-managed central platform is not implicitly selected.
+
+The EC2 discussion established that Talos AWS disk images can be imported as AMIs. EC2 provides UEFI Secure Boot and NitroTPM under documented prerequisites; the exact NEN-signed Talos combination remains untested. EC2 substitutes cloud image/instance preparation for physical factory handling. No resource was launched.
+
+Resume at Track-4 Phase 0: verify the current workstation/AWS baseline and design secure EC2-to-control-service reachability. Existing keys, deployments, AMIs and instance state must be inspected rather than assumed. All Track-3 TODOs remain available through the linked handoff register.
