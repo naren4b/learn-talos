@@ -1,6 +1,6 @@
 # Identity Registered → Talos Installed
 
-**Status:** Physical artifact relationship established; exact Talos version and installation method pending.
+**Status:** Physical artifact relationship established; Talos v1.14.1 reference; implementation and artifact selection pending.
 
 ## Use case
 
@@ -22,8 +22,12 @@ The ISO is removable installation media. The installer image is the source used 
 | Run installer and write selected disk | EDGE temporary Talos environment and EDGE SSD |
 | Record install result/version/disk identity | EDGE reports; station/inventory record |
 
-**Exit evidence:** correct SSD selected, installation completes, expected Talos version and boot artifact recorded. An installer result alone does not prove secure boot; that is the next transition. Disk selection and failed-install recovery need an explicit test before automation.
+**Exit evidence:** correct SSD selected, installation completes, expected Talos version and boot artifact recorded. An installer result alone does not prove Secure Boot. For our chosen Secure Boot path, UEFI trust is prepared before booting installation media; enforcement is verified again after SSD reboot. Disk selection and failed-install recovery need an explicit test before automation.
 
 ## Open questions
 
 Artifact source and signature/checksum policy; extension compatibility; configuration delivery and secret handling; exact Talos Secure Boot artifacts; safe retry after partial disk writes.
+
+## NEN artifact clarification
+
+OS means the operating system. ISO/PXE boots temporary Talos; it pulls the installer container image specified by machine configuration, not another ISO. Proposed NEN repositories provide approved boot assets and installers. See [trust preparation](17-nen-trust-and-certificate-issuance.md) and [two-phase activation](18-nen-factory-to-branch-activation.md).
