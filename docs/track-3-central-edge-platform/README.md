@@ -67,20 +67,13 @@ cost and its acceptance evidence are understood.
 
 ## Initial learning sequence
 
-```text
-Requirements and constraints
-        ↓
-Production architecture for 1,000+ EDGE sites
-        ↓
-Capability and responsibility map
-        ↓
-FOSS component decisions with trade-offs
-        ↓
-Incremental Track-3A implementation on WSL + KIND
-        ↓
-Verification, failure exercises and Day-2 operations
-        ↓
-Track-3B mapping to EKS and AWS managed services
+```mermaid
+flowchart TD
+    REQ["Requirements and constraints"] --> ARCH["Architecture for 1,000+ sites"]
+    ARCH --> CAP["Capabilities and FOSS choices"]
+    CAP --> LAB["WSL and KIND implementation"]
+    LAB --> TEST["Failure tests and operations"]
+    TEST --> AWS["AWS production mapping"]
 ```
 
 ## Documentation rule
