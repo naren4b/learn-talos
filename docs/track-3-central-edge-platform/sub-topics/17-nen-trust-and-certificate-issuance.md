@@ -48,3 +48,7 @@ The first command produces uki-signing-key.pem and public certificates in PEM/DE
 **TODO:<Question>** Define CA lifetime, rotation, revocation, issuance authorization and regional availability before implementation. One sub-CA per branch is not required by default.
 
 References: [Talos Secure Boot](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/secureboot), [certificate chains](https://docs.openssl.org/3.5/man7/ossl-guide-tls-introduction/).
+
+## Architecture closure — 2026-09-27
+
+This sub-topic's responsibility boundary is concluded for the current learning pass. The [consolidated factory workflow](01-factory-provisioning.md) supplies the corrected shared-preparation/per-EDGE sequence. UEFI trust precedes the Secure Boot installation environment; SSD reboot verifies enforcement again. Implementation questions remain in [open-topic.md](../open-topic.md), and no unperformed test is marked successful.
