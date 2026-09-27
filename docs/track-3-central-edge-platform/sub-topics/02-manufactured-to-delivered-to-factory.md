@@ -1,20 +1,25 @@
-# Manufactured to Delivered to Factory
+# Supplier Delivery
 
-**Status:** Planned learning sub-topic.
+**Status:** Architecture discussion concluded; implementation acceptance pending.
 
-## Transition
+## Responsibility
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `Manufactured` | `DeliveredToFactory` | Hardware supplier | Supplier to factory |
+Vendor supplies qualified hardware and provenance; factory receiving accepts custody, not fleet membership.
 
-The supplier delivers virgin EDGE hardware with its manufacturer serial,
-hardware profile and TPM. This topic will define procurement evidence,
-shipment integrity and chain of custody.
+## Standard procedure
 
-## Topics to complete
+1. Match purchase order, serial and approved hardware profile.
+2. Inspect packaging, damage and recorded firmware/TPM capabilities; never infer NEN trust from vendor delivery.
+3. Record receipt and assign intake ownership; hold mismatches for supplier review.
 
-- Approved hardware profile and supplier evidence
-- Serial and TPM provenance
-- Shipping integrity and custody transfer
-- Damage, mismatch and rejection handling
+## Completion evidence
+
+Manifest, serial, receiving operator, condition and hardware profile.
+
+## Failure and recovery
+
+Damaged, mismatched or unverifiable units cannot advance to provisioning.
+
+**TODO:<Question>** Define supplier evidence and hardware qualification thresholds.
+
+See [consolidated factory workflow](01-factory-provisioning.md) and [open questions](../open-topic.md). These are proposed operating requirements, not completed tests.
