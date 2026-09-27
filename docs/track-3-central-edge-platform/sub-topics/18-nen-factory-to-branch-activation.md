@@ -27,3 +27,7 @@ This is NEN's target workflow, not a built-in stock Talos enrollment feature. NE
 **TODO:<Question>** Define how an EDGE is assigned to a Site-ID, which bootstrap component runs before branch configuration, how it uses the operational credential, and which settings require restart/reinstallation. Do not assume any machine configuration can be changed live.
 
 One site may contain one or multiple EDGEs. Identity verification alone does not authorize every EDGE for every site: central assignment and lifecycle policy must also approve it.
+
+## Architecture closure — 2026-09-27
+
+This sub-topic's responsibility boundary is concluded for the current learning pass. The [consolidated factory workflow](01-factory-provisioning.md) supplies the corrected shared-preparation/per-EDGE sequence. UEFI trust precedes the Secure Boot installation environment; SSD reboot verifies enforcement again. Implementation questions remain in [open-topic.md](../open-topic.md), and no unperformed test is marked successful.
