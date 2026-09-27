@@ -656,3 +656,176 @@ For future entries, express process, architecture, state and interaction diagram
 The OneUptime TPM article discusses detecting a TPM and TPM-backed disk encryption. The official Talos 1.14 disk-encryption guide documents LUKS2 keys sealed to TPM PCR policy (default PCR 7), using `VolumeConfig`. Neither source establishes an EK certificate read, AK creation or EK–AK proof through the unconfigured Talos maintenance API. Do not treat the earlier Step 5 sequence diagram as an implemented interface. Resume this question after checking Talos v1.14.1 APIs/source and a physical TPM PoC. Continue later learning with this dependency explicit.
 
 References: https://oneuptime.com/blog/post/2026-03-03-use-trusted-platform-module-tpm-with-talos-linux/view ; https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/storage-and-disk-management/disk-encryption
+
+
+---
+
+## 2026-09-27 — NEN vision, trust ownership and two-phase provisioning
+
+### Company and fleet model
+
+The reference company is **Naren Edge Networks (NEN)**. NEN operates a central data center and thousands of geographically distributed branch/franchise offices. A site has one or more EDGEs depending on office size. Each site has a Site-ID; each EDGE has its own EDGE-ID and device credentials.
+
+The factory prepares and validates hardware. The data center remains the long-term fleet controller. At the branch, the EDGE initiates connectivity outward through customer NAT; management uses that established connectivity. The protocol, enrollment agent and site-configuration mechanism remain design work.
+
+**NEN Fleet Lifecycle**
+
+```mermaid
+flowchart LR
+    DC["NEN data center"] -->|Approved artifacts and policies| FAC["Factory provisioning"]
+    FAC -->|Ship provisioned hardware| EDGE["EDGE behind branch NAT"]
+    EDGE -->|Initiates outbound connection| DC
+```
+
+### Learning continuity and unresolved implementation
+
+Step 5, factory TPM EK/AK access and proof, remains unresolved. Treat it as a black box for subsequent architecture learning: its assumed output is “EDGE identity verified and registered.” This is not a claim of a working Talos maintenance API implementation.
+
+The question is tracked as OT-01 in [open-topic.md](open-topic.md). Do not silently close it or infer arbitrary TPM access from maintenance mode.
+
+Use numbered learning steps. All new diagrams must be Mermaid: top-down on mobile/small screens, left-to-right on laptops when it fits, and the best-fitting orientation in Markdown files.
+
+### OS, ISO, installer and UKI
+
+“OS” means the Talos operating system; ISO is one distribution/boot format.
+
+| Artifact | Role |
+| --- | --- |
+| ISO on USB or virtual media | Boots temporary Talos |
+| PXE assets | Boot temporary Talos over the network |
+| Installer container image | Supplies installer and installation payload |
+| Installed Talos on SSD | Persistent system used after installation |
+| UKI | Bootable bundle containing kernel, initramfs and boot arguments |
+
+Temporary Talos retrieves the installer image named in its machine configuration. It does not download another ISO to install. The proposed NEN design publishes approved boot assets and installer images in NEN-controlled repositories; direct EDGE internet downloads from Sidero Labs are not a requirement.
+
+**NEN Artifact Delivery**
+
+```mermaid
+flowchart LR
+    BUILD["NEN build and signing"] --> REPO["NEN artifact repository"]
+    REPO -->|ISO or PXE assets| BOOT["Temporary Talos on EDGE"]
+    REPO -->|Installer container image| BOOT
+    BOOT -->|Install| SSD["EDGE SSD"]
+```
+
+### Secure Boot clarification and ordering correction
+
+Secure Boot is a verification feature of EDGE UEFI firmware. UEFI does not verify the entire ISO as one signed object. The Talos Secure Boot path uses signed EFI boot components: systemd-boot and the Talos UKI. The bootloader loads the UKI through the UEFI verification chain. Direct UKI boot is also possible.
+
+The earlier learning sequence “install Talos, then prepare Secure Boot” was too simple. For the official Talos 1.14 Secure Boot installation path, prepare/enroll UEFI trust before running temporary Talos in Secure Boot mode, install using a matching Secure Boot installer, then verify Secure Boot again after rebooting from SSD. The linked sub-topic filenames represent earlier conceptual states and are not yet a corrected executable runbook.
+
+**Secure Boot Installation Order**
+
+```mermaid
+flowchart TD
+    TRUST["Prepare and enroll UEFI trust"] --> MEDIA["Boot Secure Boot media"]
+    MEDIA --> INSTALL["Install approved Talos on SSD"]
+    INSTALL --> REBOOT["Reboot from SSD"]
+    REBOOT --> VERIFY["Verify Secure Boot and Talos health"]
+```
+
+The official guide distinguishes firmware setup mode and VM versus bare-metal enrollment behavior. The actual NEN hardware enrollment procedure remains an implementation decision.
+
+### Which signing identity does NEN use?
+
+Talos supports Sidero Labs-signed boot assets and custom keys. For the NEN reference architecture, the proposed choice is NEN-controlled boot signing in protected signing infrastructure. This is separate from NEN device certificates, TPM EK/AK and Talos/Kubernetes API certificates.
+
+Keys and signed artifacts must be ready before provisioning the first EDGE. Setting up the provisioning servers can happen in parallel.
+
+Illustrative commands on a secured signing machine, not commands executed in this discussion:
+
+```bash
+talosctl gen secureboot uki --common-name "NEN Boot Signing"
+talosctl gen secureboot database
+```
+
+| Generated artifact | Purpose |
+| --- | --- |
+| uki-signing-key.pem | Private key for signing boot software |
+| uki-signing-cert.pem / .der | Public signing certificate |
+| PK.auth, KEK.auth, db.auth | UEFI trust-enrollment material |
+
+These commands generate key and enrollment material; building and signing the images follows separately. The convenience generator creates a self-signed signing certificate; a Root CA/sub-CA hierarchy is not required for this boot-signing pattern. PCR policy signing uses a separate key, for which Talos provides `talosctl gen secureboot pcr`.
+
+### NEN CA and key ownership
+
+A certificate binds an identity/purpose to a public key. A CA signs certificates with its private key. A sub-CA, also called an intermediate CA, receives a CA certificate signed by its parent.
+
+The following is a proposed NEN identity-PKI design, not a deployed configuration:
+
+| Key | Creator / private-key custodian | What it signs or proves |
+| --- | --- | --- |
+| NEN Root CA | NEN security administrators; protected offline root environment | Issuing/sub-CA certificates |
+| NEN Device Issuing CA | NEN PKI service; protected online DC signing service | Individual EDGE identity certificates |
+| NEN Service Issuing CA | NEN PKI service; protected online DC signing service | DC enrollment and management service certificates |
+| EDGE operational key | Generated on each EDGE, TPM path assumed through the parked black box; private key protected there | EDGE authentication proofs |
+| NEN boot-signing key | Protected central build/signing system | Approved bootloader and UKI |
+| NEN PCR policy signing key | Protected central build/signing system | TPM disk-unlock policies |
+
+**NEN Identity Certificate Hierarchy**
+
+```mermaid
+flowchart LR
+    ROOT["NEN Root CA"] -->|Signs CA certificate| DEVICE["Device Issuing CA"]
+    ROOT -->|Signs CA certificate| SERVICE["Service Issuing CA"]
+    DEVICE -->|Issues certificate| EDGE["Individual EDGE identity"]
+    SERVICE -->|Issues certificate| DC["DC service identity"]
+```
+
+One sub-CA per branch is not required by default; regional issuing CAs can be considered when availability or isolation requirements justify them. Multiple EDGEs in the same branch still have individual credentials.
+
+The provisioning station receives approved signed artifacts and public trust material. It does not hold NEN central CA/boot-signing private keys. EDGE UEFI receives boot trust; the software establishing connections receives the service CA trust it needs. These are different trust stores.
+
+Talos API and Kubernetes CA arrangements remain separate cluster-management concerns. Do not assume the NEN Device Issuing CA automatically replaces those CAs.
+
+### What “NEN signs the EDGE certificate” means
+
+1. EDGE-001 generates its own key pair; the private key remains protected on the EDGE.
+2. Its public key and certificate request, with required identity evidence, reach NEN enrollment/issuance services.
+3. After policy checks, the Device Issuing CA issues a certificate binding EDGE-001 to that public key.
+4. The EDGE receives that public certificate; central inventory records its public identity/certificate and provisioning evidence.
+5. On a later connection, the EDGE presents the certificate and proves possession of the corresponding private key. The DC verifies the certificate chain and authentication proof.
+
+Illustrative certificate fields:
+
+| Field | Example meaning |
+| --- | --- |
+| Identity | EDGE-001 |
+| Public key | EDGE-001 operational public key |
+| Issuer | NEN Device Issuing CA |
+| Validity | Certificate start and expiry times |
+| CA signature | Issuer's cryptographic approval of the certificate |
+
+The certificate may be shared. Copying it alone does not supply the private key needed to authenticate.
+
+### Phase 1 — Factory: prepare and validate
+
+Prepare UEFI boot trust and approved Talos installation using the corrected sequence above. Provide NEN service trust and the bootstrap enrollment address. Through the assumed identity black box, establish the EDGE key and identity proof, obtain its NEN-issued certificate, and record the EDGE-ID and public evidence centrally. Reboot, validate and approve shipment.
+
+Factory issuance of the operational certificate is the current teaching assumption. Credential lifetime, renewal and activation authorization still need detailed policy.
+
+### Phase 2 — Branch: connect and activate
+
+The operator supplies power and usable networking. The EDGE boots installed Talos, initiates an outbound connection to NEN, authenticates, and receives authorized site-specific configuration and secrets before running branch workloads.
+
+**Branch Activation**
+
+```mermaid
+flowchart LR
+    BOOT["Boot installed Talos"] --> CONNECT["Connect outbound to NEN"]
+    CONNECT --> CHECK["Verify identity and site assignment"]
+    CHECK --> CONFIG["Deliver site configuration and secrets"]
+    CONFIG --> RUN["Run branch workloads"]
+```
+
+“Just power on” assumes usable initial networking and an authorized mapping from EDGE-ID to Site-ID, either prepared before shipment or completed during activation. Stock Talos does not inherently implement the proposed NEN enrollment workflow. Initial machine configuration, outbound connectivity and the software delivering site configuration must be designed and tested. Until then this is the target architecture, not proof of zero-touch operation.
+
+### References and next checkpoint
+
+- [Talos 1.14 Secure Boot](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/secureboot)
+- [Talos 1.14 Image Factory](https://docs.siderolabs.com/talos/v1.14/learn-more/image-factory)
+- [Talos 1.14 disk encryption](https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/storage-and-disk-management/disk-encryption)
+- [OpenSSL TLS and certificate introduction](https://docs.openssl.org/3.5/man7/ossl-guide-tls-introduction/)
+
+Current understanding: the user has confirmed the explanation of NEN issuing an EDGE certificate. Continue slowly from this checkpoint, preserving the two-phase NEN vision and the parked TPM implementation question.
