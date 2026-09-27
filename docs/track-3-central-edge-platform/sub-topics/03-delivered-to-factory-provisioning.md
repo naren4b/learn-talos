@@ -22,3 +22,7 @@ A small lab may use an engineer with USB media and commands. At scale, a line ca
 - How is the receiving station authenticated and kept consistent across a pool?
 - Which firmware and TPM capabilities are mandatory for each hardware profile?
 - What are the physical custody, retry and exception-handling procedures?
+
+## Architecture closure — 2026-09-27
+
+This sub-topic's responsibility boundary is concluded for the current learning pass. The [consolidated factory workflow](01-factory-provisioning.md) supplies the corrected shared-preparation/per-EDGE sequence. UEFI trust precedes the Secure Boot installation environment; SSD reboot verifies enforcement again. Implementation questions remain in [open-topic.md](../open-topic.md), and no unperformed test is marked successful.
