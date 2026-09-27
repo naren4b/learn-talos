@@ -1,19 +1,25 @@
-# Ready to Ship to Shipped
+# Shipment
 
-**Status:** Planned learning sub-topic.
+**Status:** Architecture discussion concluded; implementation acceptance pending.
 
-## Transition
+## Responsibility
 
-| From | To | Primary actor | Location |
-| --- | --- | --- | --- |
-| `ReadyToShip` | `Shipped` | Factory logistics | Factory to carrier |
+Logistics transfers an approved EDGE with its installed SSD to the customer.
 
-An approved EDGE is sealed, associated with the shipment and transferred into
-the delivery chain without changing its registered cryptographic identity.
+## Standard procedure
 
-## Topics to complete
+1. Verify ReadyToShip and serial against shipment authorization.
+2. Package and record custody, destination and tamper-evidence details.
+3. Record Shipped separately from branch installation or activation.
 
-- Shipment authorization
-- Packaging, tamper evidence and custody
-- Inventory and customer assignment update
-- Loss, theft and shipment cancellation
+## Completion evidence
+
+Shipment identity, destination, serial and custody record.
+
+## Failure and recovery
+
+Loss, theft or cancelled delivery triggers blocked activation and credential review; shipment alone grants no site access.
+
+**TODO:<Question>** Define custody controls and lost-shipment response ownership.
+
+See [consolidated factory workflow](01-factory-provisioning.md) and [open questions](../open-topic.md). These are proposed operating requirements, not completed tests.
