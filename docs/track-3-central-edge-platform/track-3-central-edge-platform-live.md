@@ -595,3 +595,28 @@ learning discussion.
 The corresponding Markdown files `02` through `15` were created under
 `sub-topics/`. Each file defines the transition and current learning scope;
 details remain explicitly marked as planned until that state change is studied.
+
+
+---
+
+## 2026-09-27 — Factory station and state-change use cases
+
+### User direction
+
+Each state change is a separate sub-topic Markdown use case. Update the live record now. Keep unstudied transitions as explicit outlines rather than presenting invented implementation as settled design.
+
+### Coverage check
+
+Sub-topics 02–15 already map one-to-one to the state transitions shown in the lifecycle diagram, including the quarantine and boot-blocked branches. The factory provisioning overview (01) provides the end-to-end map. Added a separate station run use case (16) for the cross-cutting question of how a factory station is configured and operates. Expanded 03–07 with intake, TPM identity, Talos installation, UEFI Secure Boot and factory validation boundaries. Files 02 and 08–15 remain scoped outlines.
+
+### Station model and test ownership
+
+A lab engineer can use USB media and explicit commands. A production facility can run multiple managed stations in parallel with scans, automated jobs and pass/fail gates. In either case the station coordinates work on the EDGE: temporary EDGE-side software invokes the TPM and installer; UEFI stores boot trust and enforces Secure Boot; Talos and hardware provide health observations. The station verifies artifacts and evaluates returned evidence. It cannot prove EDGE health or trusted boot solely by testing itself.
+
+The station needs approved hardware profiles, OEM public trust roots, approved Talos artifact references and verification metadata, public boot trust, inventory enrollment endpoints, scoped station credentials and test policy. TPM private keys and central signing/CA private keys stay outside the station. A scanned serial or EK public key alone is insufficient proof of TPM possession; a challenge and binding protocol must be designed.
+
+### Physical boot relationship and open decisions
+
+The ISO is temporary boot media; the installer runs in the EDGE environment and writes installed Talos to its SSD. On the chosen Secure Boot path a signed UKI is a boot artifact on the installed system. EDGE UEFI verifies allowed boot code against its configured trust databases; the TPM records measurements that can later support attestation. Exact Talos release/artifacts, UEFI key-enrollment process, bootstrap configuration delivery, negative test, evidence policy and station automation remain to be worked through step by step.
+
+Next learning checkpoint: factory provisioning station assumptions and the EDGE-side execution boundary, then the UEFI/Secure Boot fundamentals. Do not infer the exact Talos procedure from this architecture-level outline.
