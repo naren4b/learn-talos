@@ -6,13 +6,24 @@
 
 A factory operator attaches an accepted virgin EDGE to a station. The station loads an approved job for its hardware profile, directs operations on the EDGE, gathers evidence, and records a pass/fail decision. Multiple similarly configured stations may process different devices concurrently. A lab can perform these steps manually with USB media; a production line can automate scanning, network boot/media selection, installation and tests with operator intervention on exceptions.
 
+**Step 2 — Temporary boot and staging connection**
+
 ```mermaid
-flowchart TD
-    OEM["EDGE arrives"] --> STN["Station assigns job"]
-    STN --> EDGE["EDGE executes provisioning"]
-    EDGE --> TEST["EDGE returns evidence"]
-    TEST --> GATE["Validation gate"]
+sequenceDiagram
+    autonumber
+    participant OP as Factory operator
+    participant EDGE as EDGE temporary Talos
+    participant DHCP as Staging DHCP
+    participant STN as Provisioning station
+    OP->>EDGE: Insert USB, connect Ethernet, power on
+    EDGE->>DHCP: Request network address
+    DHCP-->>EDGE: Provide staging IP
+    STN->>EDGE: Connect using discovered IP
+    STN->>EDGE: Supply approved configuration/job
+    EDGE-->>STN: Return observed results
 ```
+
+Talos booted without machine configuration enters maintenance mode. The initial design uses wired Ethernet and DHCP; Talos does not automatically discover a factory Wi-Fi or its provisioning station. How the station reliably finds and authorizes the right EDGE is still to be designed (for example a scanned port/serial mapping plus observed address).
 
 ## What the station knows
 
