@@ -40,3 +40,7 @@ Phases 3–6 receive focused use-case Markdown files when implementation reaches
 ## First step
 
 Begin [Phase 0](phase-0-baseline.md) with read-only workstation and AWS-context discovery. No AWS infrastructure was created as part of establishing this track.
+
+## Pre-lab revision
+
+Review the [detailed boot and trust notes](../track-1-talos-fundamentals/detailed/README.md) before proceeding: general Linux versus Talos, machine configuration at step 11, authenticated API at step 21, security risks, break-glass and lost-key recovery. Current learning pace: one question at a time.
