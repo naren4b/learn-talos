@@ -4,10 +4,9 @@
 
 | Order | Topic |
 | --- | --- |
-| 1 | [General Linux boot sequence](01-general-linux-boot.md) |
-| 2 | [Talos single-node boot sequence](02-talos-single-node-boot.md) |
-| 3 | [Common behavior, differences, steps 11 and 21](03-configuration-and-api-authentication.md) |
-| 4 | [Security, break-glass and lost keys](04-security-break-glass-and-lost-keys.md) |
+| 1 | [General Linux and Talos boot comparison](01-general-linux-boot.md) |
+| 3 | [Common behavior, differences, steps 11 and 21](03-configuration-and-api-authentication.md), **unapproved draft** |
+| 4 | [Security, break-glass and lost keys](04-security-break-glass-and-lost-keys.md), **unapproved draft** |
 
 [Parent: Track-1](../README.md) · [Lab: Track-4](../../track-4-nen-control-factory-ec2-lab/README.md)
 

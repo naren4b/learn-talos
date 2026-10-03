@@ -1,5 +1,7 @@
 # Security, Break-Glass and Lost Keys
 
+**Status: Draft, not approved by the learner. Pending discussion.**
+
 Parent: [Detailed notes](README.md). Previous: [API authentication](03-configuration-and-api-authentication.md). Lab: [Track-4](../../track-4-nen-control-factory-ec2-lab/README.md).
 
 ## What could compromise security?

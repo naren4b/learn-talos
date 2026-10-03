@@ -1,6 +1,8 @@
 # Configuration and API Authentication
 
-Parent: [Detailed notes](README.md). Previous: [Talos sequence](02-talos-single-node-boot.md). Next: [Security and recovery](04-security-break-glass-and-lost-keys.md).
+**Status: Draft, not approved by the learner. Pending discussion.**
+
+Parent: [Detailed notes](README.md). Previous: [Combined boot comparison](01-general-linux-boot.md). Next: [Security and recovery](04-security-break-glass-and-lost-keys.md).
 
 ## Common boot foundations
 
