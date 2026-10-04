@@ -11,6 +11,42 @@ The first boot can use USB or the network. Both examples start with a blank SSD 
 
 Documents 03 and 04 remain unapproved drafts.
 
+### Notes
+
+**Bootloader**
+
+A bootloader starts the operating system. After BIOS or UEFI initializes the hardware and selects a boot entry, the bootloader loads the Linux kernel into RAM and hands control to it. The boot files can come from USB, SSD or the network.
+
+Its main jobs are:
+
+- **Load the kernel:** Find the selected kernel and start it.
+- **Offer a boot menu:** Let you choose an operating system or kernel version, when a menu is configured.
+- **Pass kernel parameters:** Supply startup settings, such as the root filesystem location or recovery options supported by the OS.
+- **Load initramfs:** Make the early userspace environment available to the kernel. It contains tools and drivers needed during startup, often including those required to find and mount the root filesystem.
+
+Common Linux bootloaders include:
+
+| Bootloader | Description |
+| --- | --- |
+| **GRUB 2** | Widely used by Linux distributions. Supports boot menus, multiple kernels and starting other operating systems. |
+| **systemd-boot** | A small UEFI boot manager. It selects and starts EFI boot entries, including Unified Kernel Images (UKIs). |
+| **Syslinux** | A family of bootloaders, including variants for removable media, optical media and PXE network boot. |
+| **LILO** | An older Linux bootloader, mainly relevant to legacy systems. |
+
+The usual sequence is:
+
+1. **Power on:** BIOS or UEFI initializes hardware.
+2. **Select a boot entry:** Firmware starts a loader from the chosen device or network service.
+3. **Choose what to boot:** The loader reads its settings and may show a menu.
+4. **Start the kernel:** The loader provides the kernel, initramfs and startup parameters, then hands over control.
+5. **Continue startup:** The kernel initializes hardware and starts early userspace, which continues into the operating system.
+
+For a new **Talos v1.14** installation, UEFI systems use **systemd-boot**, while legacy x86_64 BIOS systems use **GRUB**. An upgraded installation can retain its older bootloader.
+
+On the UEFI path, Talos uses a **UKI**, which packages the kernel, initramfs and kernel command line in one EFI executable. A UKI can also be started directly by compatible firmware. The diagrams use “load boot components” as a short description of this process.
+
+Sources: [GNU GRUB](https://www.gnu.org/software/grub/), [GRUB manual](https://www.gnu.org/software/grub/manual/grub/grub.html), [Talos boot loader](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/bootloader).
+
 ## Scenario 1.1: USB Boot
 
 This example installs a typical Linux distribution from USB onto a blank SSD. Automated installers and other operating systems can differ. Firmware starts the loader; the loader starts the kernel. Secure Boot checks apply when enabled and correctly configured.
