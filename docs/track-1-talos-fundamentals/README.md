@@ -48,4 +48,4 @@ This Track-1 directory exists to keep the repository's track naming and navigati
 
 Review the [detailed boot and trust notes](detailed/README.md) before proceeding: general Linux versus Talos, machine configuration at step 11, authenticated API at step 21, security risks, break-glass and lost-key recovery. Current learning pace: one question at a time.
 
-The [live discussion](track-1-talos-fundamentals-live.md) preserves questions, answers and extra notes. The detailed documents provide topic-focused explanations.
+The [live discussion](conversation-live.md) preserves questions, answers and extra notes. The detailed documents provide topic-focused explanations.
