@@ -2,11 +2,20 @@
 
 Parent: [Detailed notes](README.md).
 
-Round 1: both boot sequences are kept together for comparison. Documents 03 and 04 remain unapproved drafts and are not part of this combined note.
+This topic is organized by the medium used for the first boot. Each scenario compares general Linux and Talos from cold hardware through installation and subsequent SSD boot.
+
+| Scenario | Boot medium | Learning status |
+| --- | --- | --- |
+| 1.1 | USB | Round 1, current discussion |
+| 1.2 | Network | Round 2, planned; not yet explained or approved |
+
+Documents 03 and 04 remain unapproved drafts.
+
+## Scenario 1.1: USB Boot
 
 Scope: a typical Linux distribution installed from USB onto a blank SSD. Automated installers and other operating systems can differ. Firmware starts the loader; the loader starts the kernel. Secure Boot checks apply when enabled and correctly configured.
 
-## General Linux Installation and Boot
+### General Linux Installation and Boot
 
 ```mermaid
 sequenceDiagram
@@ -41,11 +50,11 @@ The OS becomes usable without Kubernetes. Kubernetes installation is a separate 
 
 Networking supplies an IP address and, as configured, a gateway and DNS. A typical installer uses DHCP or accepts static settings. It matters for downloads and remote access; offline installation from complete local media can proceed without it.
 
-## Talos Single-Node Scope
+### Talos Single-Node Scope
 
 Scope: blank bare-metal disk, USB boot, reachable registry, one control-plane node also running workloads. This is the ordinary configuration-driven installation path, not the EC2 AMI or NEN factory identity workflow.
 
-## Talos Installation and Cluster Bootstrap
+### Talos Installation and Cluster Bootstrap
 
 ```mermaid
 sequenceDiagram
@@ -95,3 +104,18 @@ The USB environment initially runs in RAM. Remove/unmount installation media aft
 Step 22 is a one-time cluster initialization. Do not run bootstrap on ordinary restarts. Step 26 requires functioning container networking. A single node has no node-level availability redundancy.
 
 Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane).
+
+## Scenario 1.2: Network Boot
+
+**Status: Planned for Round 2.** Complete the USB scenario questions before developing this scenario.
+
+Use the same comparison structure:
+
+1. Starting hardware and network prerequisites.
+2. General Linux sequence diagram.
+3. Talos single-node sequence diagram.
+4. Numbered step explanations, including where boot assets and machine configuration come from.
+5. Common behavior and differences from the USB scenario.
+6. Failure, security and recovery questions.
+
+Then study DHCP, Matchbox and Squid responsibilities in Round 3, and remote NAT in Round 4. Naming a component here does not approve its deployment.
