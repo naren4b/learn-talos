@@ -6,6 +6,10 @@ This file is the shareable curriculum and working plan for the Talos learning jo
 
 Become a Talos Champion: someone who can confidently design, bootstrap, secure, operate, upgrade, and troubleshoot production-grade Talos Kubernetes clusters across bare metal, Proxmox, and cloud environments.
 
+## Reference Notes
+
+- [PXE, iPXE, TFTP and HTTP](pxe-ipxe-tftp-http.md) — how the first loader and later OS boot files are delivered.
+
 ## Teaching approach
 
 Each concept should be taught in this sequence:

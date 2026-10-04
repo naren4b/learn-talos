@@ -32,3 +32,11 @@ The previous Track-3A implementation intent continues here as Track-4A. The futu
 Begin [Phase 0](phase-0-baseline.md): one read-only workstation baseline step, then verify AWS context and choose a reachable central endpoint topology before creating resources.
 
 Use [README](README.md) for phase navigation and [open questions](open-topic.md) for blockers.
+
+## 2026-10-04 — AWS Lab Selected Next
+
+The user selected the AWS lab as the next practical track. Track-4B already exists and now starts with standalone Talos on EC2. Fleet activation and control/factory integration follow after a healthy baseline and reachable central endpoint.
+
+IRSA is a later workload-identity exercise. Customer EDGE AI inference is recorded as a planned Track-2 topic. No instance, network or workload was deployed.
+
+Restart with read-only workstation discovery and AWS identity/region verification. Do not assume earlier Track-2 resources are active or reusable.

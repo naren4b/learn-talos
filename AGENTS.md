@@ -119,6 +119,10 @@ Public keys may be documented only when doing so is useful and intentional. Trea
 
 Use `.gitignore` for generated secret-bearing directories and large downloaded/generated artifacts where appropriate.
 
+## Fundamentals documentation
+
+Document fundamental, theoretical and basic topics about OS, Talos, booting and security in [Track-1 fundamentals](docs/track-1-talos-fundamentals/detailed/README.md). Refer to that series from architecture and lab tracks instead of duplicating the theory. Keep detailed pages lightweight and topic-focused. Preserve questions, answers and extra notes chronologically in [conversation-live.md](docs/track-1-talos-fundamentals/conversation-live.md). Retain unapproved material as draft discussion notes in the live record until it is developed into a reviewed topic.
+
 ## Documentation rules
 
 The repository documentation is the durable handoff between chat, Codex sessions, laptops, and future work. Do not rely on conversation history as the only record.

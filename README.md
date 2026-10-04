@@ -35,6 +35,10 @@ The public-facing content should stay in the reusable docs and repo guidance, wh
 
 The public learning plan is now in [docs/learning-foundations/roadmap.md](docs/learning-foundations/roadmap.md). The original root-level objective content has been folded into the modular roadmap so the repo stays clean and shareable.
 
+## OS and Talos fundamentals
+
+Use the [Track-1 fundamentals reference](docs/track-1-talos-fundamentals/detailed/README.md) for OS startup, Talos, booting and security theory. Other tracks link to these explanations. Questions, answers and discussion history are in [conversation-live.md](docs/track-1-talos-fundamentals/conversation-live.md).
+
 ## Secure zero-touch edge track
 
 Track 2 studies how a Talos edge appliance can be prepared centrally,
@@ -63,7 +67,7 @@ Track 3 records the central management architecture for 1,000+ customer-premise 
 - [Phase 0 — baseline and topology](docs/track-4-nen-control-factory-ec2-lab/phase-0-baseline.md).
 - [Append-only lab record](docs/track-4-nen-control-factory-ec2-lab/track-4-nen-lab-live.md).
 
-Track created; infrastructure not yet provisioned. Track-2 remains paused.
+Track created; infrastructure not yet provisioned. **Next lab: standalone Talos on AWS EC2 in Track-4B.** Control/factory integration follows later. Track-2's connectivity PoC remains paused; [customer EDGE AI workloads](docs/track-2-secure-edge/sub-topics/05-ai-workloads-on-customer-edge.md) is a planned learning and blog topic.
 
 ## Working conventions
 
