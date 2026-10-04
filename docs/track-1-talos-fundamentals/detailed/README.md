@@ -4,7 +4,7 @@
 
 | Order | Topic |
 | --- | --- |
-| 1 | [General Linux and Talos boot comparison](01-general-linux-boot.md): scenario 1.1 USB, scenario 1.2 network |
+| 1 | [General Linux and Talos boot comparison](01-general-linux-boot.md): scenario 1.1 USB, scenario 1.2 network, section 1.3 distant sites |
 | 3 | [Common behavior, differences, steps 11 and 21](03-configuration-and-api-authentication.md), **unapproved draft** |
 | 4 | [Security, break-glass and lost keys](04-security-break-glass-and-lost-keys.md), **unapproved draft** |
 
@@ -28,3 +28,5 @@ Proceed one concept and one question at a time. These are learning topics, not a
 Scenario 1.2 now includes the complete network installation sequences as a review draft. Teaching still proceeds one question at a time; completion of the draft does not imply learner approval.
 
 Questions, answers and extra notes belong in the [live discussion](../track-1-talos-fundamentals-live.md). Detailed pages remain focused on their topics.
+
+Section 1.3 introduces the branch-to-NEN boot path and DHCP, iPXE, Matchbox and Squid responsibilities. It is a review draft; practical setup remains pending.
