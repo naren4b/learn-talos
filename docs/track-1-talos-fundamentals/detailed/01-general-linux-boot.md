@@ -361,9 +361,4 @@ An ISO is a boot-media image. A UKI packages early boot components. An installer
 
 ### Next
 
-Next, follow one machine's DHCP exchange: how it gets an address, discovers the boot service and starts iPXE.### Notes
-
-A working network, correct installation disk and compatible boot assets are essential. PXE alone does not establish Secure Boot or protect machine configuration.
-
-Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
-
+Next, follow one machine's DHCP exchange: how it gets an address, discovers the boot service and starts iPXE.
