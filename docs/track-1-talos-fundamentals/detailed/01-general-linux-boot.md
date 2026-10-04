@@ -1,17 +1,15 @@
 # General Linux and Talos Boot Comparison
 
-Parent: [Detailed notes](README.md).
+[Detailed notes](README.md)
 
-The first boot can use USB or the network. Both examples start with a blank SSD and follow installation through the next boot from SSD.
+A reference for how firmware starts an operating system, how USB and network installation work, and how Talos brings up Kubernetes.
 
-| Scenario | Boot medium | Learning status |
-| --- | --- | --- |
-| 1.1 | USB | Round 1, current discussion |
-| 1.2 | Network | Complete diagram draft for Round 2; learner review pending |
-| 1.3 | Network boot across distant sites | Network layout and service roles; learner review pending |
-| 1.4 | USB versus network boot in Talos | Comparison notes; learner review pending |
-
-Documents 03 and 04 remain unapproved drafts.
+| Section | Topic |
+| --- | --- |
+| 1.1 | USB installation and SSD boot |
+| 1.2 | Network installation and SSD boot |
+| 1.3 | Network services and remote boot |
+| 1.4 | USB versus network boot in Talos |
 
 ### Notes
 
@@ -88,10 +86,6 @@ The OS becomes usable without Kubernetes. Kubernetes installation is a separate 
 
 Networking supplies an IP address and, as configured, a gateway and DNS. A typical installer uses DHCP or accepts static settings. It matters for downloads and remote access; offline installation from complete local media can proceed without it.
 
-### Talos Single-Node Setup
-
-Here, Talos boots from USB and installs onto a blank SSD. The machine can reach the image registry, and its single control-plane node also runs workloads.
-
 ### Talos Installation and Cluster Bootstrap
 
 ```mermaid
@@ -137,24 +131,23 @@ sequenceDiagram
 
 ### Notes
 
-- **Step 4:** UEFI starts the USB loader, which loads the kernel and initramfs. Talos initially runs in RAM.
-- **Step 5:** DHCP supplies the node address and, when configured, gateway and DNS. General Linux also needs these for downloads and remote access.
-- **Steps 6–8:** Without machine configuration, Talos exposes its maintenance API. Use `talosctl` to inspect the node and identify the target SSD. This replaces an interactive installation screen; Talos has no ordinary user login or SSH service.
-- **Steps 9–11:** Generate cluster secrets and a control-plane machine configuration. It declares the node role, installation disk and installer image, Kubernetes endpoint, networking and cluster trust material. Applying it tells Talos what to install and which cluster to join; controllers use it to configure services and persist the node configuration. Keep the separate `talosconfig` client credentials on the administrator workstation.
-- **Step 10:** Permit workloads on this single control-plane node. For v1.14, configure the control-plane scheduling taint through `KubeNodeConfig`; otherwise ordinary workloads can remain unscheduled.
-- **Steps 12–14:** Talos downloads an installer container image, not another ISO. The installer writes boot assets and initializes the selected SSD; the node saves configuration for later boots. A general Linux installer usually installs packages and a conventional root filesystem.
-- **Steps 15–20:** Set the disk boot order and remove or unmount installation media after the USB environment has booted, following the installation guide. Do this before applying configuration triggers installation and its automatic reboot. Step 15 is a boot requirement, not a last-second manual action. On SSD boot, the loader loads the kernel and initramfs, then Talos reads persisted configuration.
-- **Step 21:** The configured API uses mutual TLS. The administrator verifies the server using the Talos CA; the node verifies the client's certificate and proof that it holds the matching private key, then checks its roles. Maintenance access did not require this configured client identity. Applying trusted configuration establishes this change; reboot itself does not create authentication. `--insecure` cannot bypass authentication on the configured API.
-- **Steps 22–23:** Run `talosctl bootstrap` once to initialize etcd for this new cluster. Ordinary restarts reuse existing cluster state.
-- **Steps 24–28:** Talos manages Kubernetes services. Fetch the required images, establish control-plane services and the selected CNI, retrieve `kubeconfig`, then check node and system-pod readiness. A general Linux installation finishes before any separate Kubernetes setup.
+- **Steps 4–5:** The loader starts the kernel and initramfs. Talos runs in RAM and obtains networking, as a Linux installer does.
+- **Steps 6–8:** Without configuration, Talos exposes its maintenance API. Inspect hardware using `talosctl`; there is no ordinary login or SSH service.
+- **Steps 9–11:** Machine configuration supplies the role, disk, installer image, networking, Kubernetes endpoint and trust material. Talos uses it to install and configure services. Keep administrator credentials in the separate `talosconfig` file.
+- **Step 10:** A single control-plane node needs permission to schedule workloads. Talos v1.14 expresses the scheduling taint through `KubeNodeConfig`.
+- **Steps 12–14:** The installer is a container image, not another ISO. It writes Talos to SSD and the node saves configuration.
+- **Steps 15–20:** Prepare SSD boot priority and remove or unmount installation media before applying configuration triggers automatic installation and reboot. The installed loader starts Talos, which reads saved configuration.
+- **Step 21:** The configured API uses mutual TLS: the client verifies the server, and the server verifies the client certificate, private-key possession and roles. Configuration establishes trust; reboot does not create it. `--insecure` does not bypass this authentication.
+- **Steps 22–23:** Bootstrap etcd once for a new cluster. Do not repeat bootstrap on ordinary restarts.
+- **Steps 24–28:** Talos starts Kubernetes. Container networking must work before the node and workloads are ready. General Linux does not create Kubernetes as part of ordinary OS installation.
 
-The numbered arrows show dependencies, not exact timing. Image downloads and service startup can overlap. Kubernetes readiness requires working container networking; one node provides no node-level availability redundancy.
+Downloads and service startup can overlap. A single node has no node-level availability redundancy.
 
 Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane).
 
 ## Scenario 1.2: Network Boot
 
-For this example, the machine has a blank SSD, supports PXE and connects to the provisioning LAN. DHCP supplies boot information; a boot service supplies a compatible loader and OS boot assets. This example uses PXE/iPXE, not booting across a customer NAT.
+For this example, the machine has a blank SSD, supports PXE and connects to the provisioning LAN. DHCP supplies boot information; a boot service supplies a compatible loader and OS boot assets. This example uses PXE/iPXE on a LAN.
 
 “Provisioning Services” includes DHCP, boot files and machine configuration. These services can run on different servers. We will discuss Matchbox and Squid separately.
 
@@ -267,100 +260,44 @@ sequenceDiagram
 - **Steps 25–31:** Arrange disk-first boot before the automatic reboot. Firmware loads SSD boot assets; Talos restores persisted configuration and its authenticated API. Both operating systems can boot locally after installation without repeating PXE installation.
 - **Steps 32–38:** Authenticate with workstation client credentials, bootstrap the new cluster once, start Kubernetes and its CNI, retrieve Kubernetes credentials, and verify readiness. General Linux does not implicitly create a Kubernetes cluster.
 
-### What Can Go Wrong
+A working network, correct installation disk and compatible boot assets are essential. PXE alone does not establish Secure Boot or protect machine configuration.
 
-- DHCP and a MAC-based configuration lookup do not authenticate the machine. Restrict provisioning access and protect configuration containing secrets. HTTPS requires a certificate chain the booted environment actually trusts.
-- These diagrams assume compatible boot assets and working network, storage and registry access. Secure Boot requires a separately prepared trusted boot chain; PXE alone does not establish it.
-- Missing DHCP or boot assets prevents the initial network boot. Missing runtime networking prevents configuration or image retrieval. A wrong install disk can overwrite data.
-- An authenticated Talos API requires valid trusted client credentials and roles. Losing the administrator's private key cannot be fixed with maintenance-mode flags; recovery depends on separately retained credentials or secrets.
-- Detailed security and recovery explanations in documents 03 and 04 remain unapproved drafts. Section 1.3 introduces DHCP, Matchbox, Squid and remote NAT; implementation remains a later discussion.
+Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
 
-Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane), [general Linux example: RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
+## Section 1.3: Network Services and Remote Boot
 
-## Section 1.3: Network Boot Across Distant Sites
+Network boot has two stages: discover how to boot, then download the boot files. The files may be on the same LAN or on a distant server.
 
-An EDGE can download boot files from NEN miles away. The distance matters for latency, bandwidth and reliability; the first question is how the machine gets onto the network before Talos exists.
-
-### How It Reaches NEN
-
-For a branch behind customer NAT, one possible design is:
-
-1. **Prepare the branch network:** The router already has Internet access. Configure the existing DHCP service to supply the correct network boot information, and provide a local service for the first loader when using PXE chainloading.
-2. **Power on the blank EDGE:** Its firmware requests an address and boot information on the branch LAN.
-3. **Start iPXE:** Firmware downloads a compatible iPXE loader from the local boot service. Alternatively, use a prepared iPXE USB or supported firmware HTTP boot; the first loader still needs a way to find its boot instructions.
-4. **Contact NEN:** iPXE requests its boot script and assets through the branch gateway. These are outbound connections, so ordinary NAT does not require inbound port forwarding. Routing, DNS and firewall policy must allow them.
-5. **Start Talos in RAM:** The downloaded kernel and initramfs start Talos, which configures its own networking.
-6. **Fetch configuration and install:** Talos retrieves its protected machine configuration, downloads the installer image, and installs to SSD.
-7. **Boot from SSD:** Talos restores its saved configuration. Bootstrap the new cluster once and verify Kubernetes readiness, as in section 1.2.
-
-The EDGE's own Talos WireGuard connection cannot carry steps 2–4: Talos has not started yet. A router-to-NEN VPN can be used because the router is already running.
-
-This is a proposed network layout for NEN, not an assumption that every customer network already supports it.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant E as EDGE
-    participant L as Branch DHCP and Boot Service
-    participant G as Branch Gateway
-    participant N as NEN Boot and Config Services
-    participant R as Image Registry
-    E->>L: Firmware requests DHCP and boot information
-    L-->>E: Address and local loader location
-    E->>L: Download compatible iPXE loader
-    L-->>E: Return loader and NEN script location
-    E->>G: iPXE requests NEN boot script and assets
-    G->>N: Forward outbound requests
-    N-->>G: Return boot script and Talos assets
-    G-->>E: Deliver responses
-    E->>E: Start Talos and configure runtime network
-    E->>G: Request protected machine configuration
-    G->>N: Forward configuration request
-    N-->>G: Return authorized node configuration
-    G-->>E: Deliver configuration
-    E->>G: Request installer image
-    G->>R: Forward registry request
-    R-->>G: Return image
-    G-->>E: Deliver image
-    E->>E: Install to SSD and reboot locally
-```
-
-### Who Does What?
-
-| Player | Job | Where it runs | Is it needed? |
-| --- | --- | --- | --- |
-| **BIOS or UEFI** | Starts the selected network loader | EDGE firmware | Yes, with compatible network-boot support |
-| **DHCP** | Supplies an address and network boot information | Branch LAN, or a reachable server through a configured relay | Required for the illustrated PXE path |
-| **DHCP relay** | Forwards DHCP requests between a subnet and a DHCP server | Branch router or network device | Only when DHCP is on another routed network |
-| **TFTP service** | Supplies the first PXE loader | Usually near the EDGE | Needed for this chainloading example; HTTP boot can use another path |
-| **iPXE** | Runs boot instructions and downloads the OS boot assets | EDGE, before Talos | Useful here; other supported loaders can replace it |
-| **HTTP or HTTPS boot service** | Serves boot scripts, kernel and initramfs | NEN, a regional server or a branch mirror | A boot-file source is needed |
-| **Matchbox** | Matches hardware labels to profiles and produces boot instructions | Usually NEN or a regional provisioning service | Optional; a static iPXE script works for a small lab |
-| **Machine configuration service** | Delivers the correct Talos configuration securely | NEN or a trusted provisioning service | Needed for automatic URL-based configuration; API delivery is another path |
-| **Image registry** | Supplies Talos installer and Kubernetes images | Central, regional or local | Required image content must be reachable |
-| **Squid** | Proxies web requests and can cache eligible content | Branch or regional network | Optional; it reduces some repeated downloads, not the need for DHCP or a loader |
-| **Gateway, DNS and firewall** | Provide name resolution, routing and permitted WAN access | Branch network | Needed for this WAN download path |
-
-The names are **iPXE** and **Squid**.
-
-**DHCP:** It gives the EDGE its network address and settings. For PXE, the DHCP setup also tells firmware where to find the first boot file. Once Talos starts, it configures its own network; DHCP does not install Talos or provide cluster credentials.
-
-Watch: [DHCP video supplied in our discussion](https://youtu.be/IUOVSIKj6GU).
-
-Matchbox does not replace DHCP. Its machine labels, such as MAC addresses, select a profile; they do not prove a trusted EDGE identity. Its authenticated management API is separate from authenticating booting machines.
-
-Squid is not a bootloader or provisioning controller. An ordinary HTTPS CONNECT tunnel keeps the content encrypted, so Squid cannot simply cache the files inside it. For repeated OS downloads, a local file mirror or registry mirror may fit better. Do not cache secret machine configurations as shared public content.
+1. Firmware obtains networking and boot information, usually through DHCP.
+2. It starts a compatible network loader.
+3. The loader fetches the kernel and initramfs, or a supported EFI boot image.
+4. The kernel starts; the OS configures its own networking.
+5. Talos receives machine configuration and installs to SSD, as shown in section 1.2.
 
 ### Notes
 
-- **Local DHCP, central files:** Keep boot discovery at the branch and fetch larger assets from NEN over permitted HTTP/HTTPS connections.
-- **Central DHCP over a private network:** A branch relay can reach NEN DHCP through a routed WAN or router VPN. It must be configured in advance; DHCP discovery is not an Internet-wide broadcast.
-- **No branch boot service:** A prepared iPXE USB can supply the first loader while the branch's ordinary DHCP supplies networking. A shipped EDGE with Talos already on SSD normally boots locally instead.
-- **Customer network restrictions:** Captive portals, unsupported Wi-Fi authentication or blocked downloads can prevent pre-OS boot. This example assumes Ethernet and permitted access to the required endpoints.
-- **HTTPS and Secure Boot:** The actual loader must support HTTPS and trust the serving certificate. Every executable in a Secure Boot chain must also satisfy the firmware's trust policy; a downloaded iPXE binary is not automatically trusted.
-- **WAN failure:** A cold machine needs its required assets and configuration to continue. Branch mirrors can reduce that dependency. After installation, ordinary SSD boot does not repeat these network installation steps.
+| Component | What it does |
+| --- | --- |
+| **DHCP** | Supplies an IP address and network settings; a PXE setup also provides boot information |
+| **DHCP relay** | Forwards requests to a DHCP server on another routed network |
+| **TFTP** | Often serves the first PXE loader |
+| **iPXE** | Downloads and runs boot instructions, with support for fetching assets over HTTP |
+| **HTTP/HTTPS server** | Serves boot scripts and OS files |
+| **Matchbox** | Selects boot profiles using machine labels such as MAC or UUID; optional |
+| **Squid** | Proxies web requests and can cache eligible content; optional |
+| **Configuration service** | Delivers the Talos machine configuration for automatic setup |
+| **Registry** | Supplies installer and Kubernetes container images |
 
-Sources: [DHCP and relays: RFC 2131](https://www.rfc-editor.org/rfc/rfc2131), [iPXE project: chainloading](https://ipxe.org/howto/chainloading), [Matchbox](https://matchbox.psdn.io/), [Squid](https://www.squid-cache.org/Intro/), [Squid HTTPS behavior](https://wiki.squid-cache.org/Features/HTTPS), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
+- DHCP discovery stays on the local subnet unless a relay is configured. It does not broadcast across the Internet.
+- A distant boot server needs working routing, DNS and firewall permissions. Outbound downloads can pass through NAT.
+- An OS-level VPN is unavailable before that OS starts. A pre-existing router VPN is a different option.
+- HTTPS requires loader support and trusted certificates. Secure Boot separately checks executable trust.
+- Matchbox does not replace DHCP. Hardware labels select profiles but do not authenticate machines.
+- Squid does not install the OS. Ordinary HTTPS tunnels do not expose their contents for caching.
+
+Watch: [DHCP video](https://youtu.be/IUOVSIKj6GU).
+
+Sources: [DHCP: RFC 2131](https://www.rfc-editor.org/rfc/rfc2131), [iPXE](https://ipxe.org/howto/chainloading), [Matchbox](https://matchbox.psdn.io/), [Squid HTTPS](https://wiki.squid-cache.org/Features/HTTPS).
 
 ## Section 1.4: USB Boot and Network Boot in Talos
 
@@ -383,12 +320,12 @@ Both methods start Talos. The main difference is where the first boot files come
 - **Our examples use different delivery methods:** Section 1.1 applies configuration through the maintenance API. Section 1.2 fetches it through a configured URL. That is a setup choice, not an inherent difference in Talos.
 - **USB is not an offline installation by itself:** It supplies initial boot files. The ordinary installation still needs configuration and access to installer and Kubernetes images. A disconnected setup must provide those separately.
 - **Booting is not installing:** On blank hardware, both illustrated paths start Talos in RAM. Applying installation configuration causes installation to the selected SSD.
-- **The installation result can be the same:** With matching assets and configuration, both methods install the same Talos version, node role and cluster trust.
+- **The installed OS can be the same:** With matching assets and configuration, both methods install the same Talos version, node role and cluster trust.
 - **Later boots use SSD:** Once installed, select SSD boot. Neither the USB nor the network boot service is needed for the ordinary local boot path.
 - **Kubernetes setup is unchanged:** Configure the node, bootstrap the new cluster once, then check readiness.
 - **Security depends on the full boot chain:** The medium alone does not establish Secure Boot or trusted configuration delivery.
 
-For a few machines, USB needs less boot-service setup. For repeated provisioning, network boot centralizes the initial files, while adding network dependencies.
+USB needs less boot-service setup. Network boot centralizes the initial files, while adding network dependencies.
 
 Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
 
@@ -408,10 +345,25 @@ After installation to SSD, the upgrade process is the same in both cases.
 
 Talos retains the previous OS image for rollback. Upgrade Kubernetes separately, and do not repeat cluster bootstrap. Expect downtime on our single-node setup.
 
-In NEN, the management service can schedule the work and an EDGE-side agent can initiate the request. That agent is part of our fleet design, not a built-in consequence of USB or PXE installation.
-
 Source: [Talos upgrade guide](https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/lifecycle-management/upgrading-talos).
+
+### The Modern Boot Stack
+
+| Layer | Purpose |
+| --- | --- |
+| **UEFI and optional Secure Boot** | Initialize hardware, select a boot entry and check trusted signatures when enabled |
+| **Boot manager or loader** | Start the selected OS; Talos uses systemd-boot on new UEFI installations |
+| **Kernel and initramfs, optionally packaged as a UKI** | Initialize hardware and provide the early startup environment |
+| **OS services** | Configure networking, storage and APIs; Talos manages these declaratively |
+| **Container runtime and Kubernetes** | Run and coordinate container workloads after the OS is running |
+
+An ISO is a boot-media image. A UKI packages early boot components. An installer image writes or upgrades Talos on disk. These serve different purposes.
 
 ### Next
 
-We now know where the boot files come from. Next, we will follow one EDGE's DHCP exchange: how it gets an address, discovers the boot service and starts iPXE.
+Next, follow one machine's DHCP exchange: how it gets an address, discovers the boot service and starts iPXE.### Notes
+
+A working network, correct installation disk and compatible boot assets are essential. PXE alone does not establish Secure Boot or protect machine configuration.
+
+Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
+
