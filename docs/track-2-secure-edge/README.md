@@ -48,6 +48,7 @@ Current focused notes include:
 - [Bootstrap and trust](sub-topics/02-bootstrap-and-trust.md)
 - [Connect EDGE to central](sub-topics/03-connect-edge-to-central.md)
 - [End-to-end interview card](sub-topics/04-end-to-end-interview-card.md)
+- [AI workloads on customer EDGE](sub-topics/05-ai-workloads-on-customer-edge.md), **planned**
 - [Interview learning record](sub-topics/interview-1-talos-at-edge.md)
 
 ## Trust mental model
