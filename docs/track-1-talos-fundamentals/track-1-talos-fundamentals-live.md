@@ -45,3 +45,11 @@ Detailed topic: [General Linux and Talos Boot Comparison](detailed/01-general-li
 **Request:** Add the supplied explanation of bootloaders as notes, including their duties, examples and place in the boot process.
 
 **Response:** Added the explanation under “Notes” in the boot comparison. Kept the definition, duties, bootloader table and startup steps. Replaced broad claims about defaults and speed with simpler descriptions, removed the unrelated closing question and generic numbered references, and added official references. Included Talos v1.14's UEFI systemd-boot and UKI path and legacy BIOS GRUB path.
+
+## 2026-10-04: Network boot miles apart
+
+**Question:** Create section 1.3 explaining how an EDGE boots miles away from the network point of view, what is needed, and the roles of iPXE, DHCP, Matchbox and Squid.
+
+**Answer:** Added a branch-to-NEN sequence and a service-role table. The illustrated path uses local DHCP and initial loader delivery, then outbound WAN downloads through the customer's gateway. Central DHCP needs an explicitly configured relay and routed connectivity. Talos's own VPN cannot carry pre-OS boot traffic. Matchbox selects boot profiles; Squid is an optional proxy/cache, not a bootloader. Included alternatives for router VPNs, iPXE USB and already installed SSDs, plus trust and WAN dependencies.
+
+**Status:** Documentation draft added to PR 3. No lab deployment or learner approval recorded.
