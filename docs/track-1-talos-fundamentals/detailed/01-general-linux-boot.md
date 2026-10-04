@@ -9,6 +9,7 @@ The first boot can use USB or the network. Both examples start with a blank SSD 
 | 1.1 | USB | Round 1, current discussion |
 | 1.2 | Network | Complete diagram draft for Round 2; learner review pending |
 | 1.3 | Network boot across distant sites | Network layout and service roles; learner review pending |
+| 1.4 | USB versus network boot in Talos | Comparison notes; learner review pending |
 
 Documents 03 and 04 remain unapproved drafts.
 
@@ -356,3 +357,33 @@ Squid is not a bootloader or provisioning controller. An ordinary HTTPS CONNECT 
 - **WAN failure:** A cold machine needs its required assets and configuration to continue. Branch mirrors can reduce that dependency. After installation, ordinary SSD boot does not repeat these network installation steps.
 
 Sources: [DHCP and relays: RFC 2131](https://www.rfc-editor.org/rfc/rfc2131), [iPXE project: chainloading](https://ipxe.org/howto/chainloading), [Matchbox](https://matchbox.psdn.io/), [Squid](https://www.squid-cache.org/Intro/), [Squid HTTPS behavior](https://wiki.squid-cache.org/Features/HTTPS), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
+
+## Section 1.4: USB Boot and Network Boot in Talos
+
+Both methods start Talos. The main difference is where the first boot files come from and what must work before the kernel starts.
+
+| What changes? | USB boot | Network boot |
+| --- | --- | --- |
+| First boot files | Talos ISO written to USB | Boot files downloaded from a boot service |
+| Firmware starts | Loader on USB | Network loader discovered through the configured boot path |
+| Networking before Talos | Not needed to read USB boot files | Needed to discover and download boot files |
+| Preparation | Create USB media and select USB boot | Prepare boot services, compatible assets and boot instructions |
+| First failures to check | USB image, device and boot selection | DHCP, loader location, routing and asset delivery |
+| Updating initial boot files | Rewrite or replace the USB image | Update the boot service and its instructions |
+| Hands-on work | Usually insert media per machine, unless virtual media is available | Can boot many machines without inserting USB media |
+| WAN dependency | Initial boot files are local | Initial boot depends on WAN when files are hosted remotely |
+
+### Notes
+
+- **Configuration is a separate choice:** Either method can enter maintenance mode when no machine configuration is available. Network boot does not automatically mean zero-touch installation, and USB boot does not always mean manual configuration.
+- **Our examples use different delivery methods:** Section 1.1 applies configuration through the maintenance API. Section 1.2 fetches it through a configured URL. That is a setup choice, not an inherent difference in Talos.
+- **USB is not an offline installation by itself:** It supplies initial boot files. The ordinary installation still needs configuration and access to installer and Kubernetes images. A disconnected setup must provide those separately.
+- **Booting is not installing:** On blank hardware, both illustrated paths start Talos in RAM. Applying installation configuration causes installation to the selected SSD.
+- **The installation result can be the same:** With matching assets and configuration, both methods install the same Talos version, node role and cluster trust.
+- **Later boots use SSD:** Once installed, select SSD boot. Neither the USB nor the network boot service is needed for the ordinary local boot path.
+- **Kubernetes setup is unchanged:** Configure the node, bootstrap the new cluster once, then check readiness.
+- **Security depends on the full boot chain:** The medium alone does not establish Secure Boot or trusted configuration delivery.
+
+For a few machines, USB needs less boot-service setup. For repeated provisioning, network boot centralizes the initial files, while adding network dependencies.
+
+Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
