@@ -67,7 +67,7 @@ Track 3 records the central management architecture for 1,000+ customer-premise 
 - [Phase 0 — baseline and topology](docs/track-4-nen-control-factory-ec2-lab/phase-0-baseline.md).
 - [Append-only lab record](docs/track-4-nen-control-factory-ec2-lab/track-4-nen-lab-live.md).
 
-Track created; infrastructure not yet provisioned. Track-2 remains paused.
+Track created; infrastructure not yet provisioned. **Next lab: standalone Talos on AWS EC2 in Track-4B.** Control/factory integration follows later. Track-2's connectivity PoC remains paused; [customer EDGE AI workloads](docs/track-2-secure-edge/sub-topics/05-ai-workloads-on-customer-edge.md) is a planned learning and blog topic.
 
 ## Working conventions
 
