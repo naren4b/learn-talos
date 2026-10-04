@@ -49,3 +49,9 @@ This Track-1 directory exists to keep the repository's track naming and navigati
 Review the [detailed boot and trust notes](detailed/README.md) before proceeding: general Linux versus Talos, machine configuration at step 11, authenticated API at step 21, security risks, break-glass and lost-key recovery. Current learning pace: one question at a time.
 
 The [live discussion](conversation-live.md) preserves questions, answers and extra notes. The detailed documents provide topic-focused explanations.
+
+## Fundamentals Reference
+
+Document fundamental, theoretical and basic OS, Talos, booting and security topics in this series. Other tracks should refer to the [fundamentals reference](detailed/README.md) instead of duplicating explanations. Keep detailed notes topic-focused and questions, answers and extra notes in [conversation-live.md](conversation-live.md).
+
+The earlier configuration/authentication and security/recovery drafts are preserved in the live record for later discussion.
