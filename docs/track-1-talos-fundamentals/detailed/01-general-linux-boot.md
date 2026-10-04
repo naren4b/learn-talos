@@ -7,7 +7,7 @@ This topic is organized by the medium used for the first boot. Each scenario com
 | Scenario | Boot medium | Learning status |
 | --- | --- | --- |
 | 1.1 | USB | Round 1, current discussion |
-| 1.2 | Network | Round 2, planned; not yet explained or approved |
+| 1.2 | Network | Complete diagram draft for Round 2; learner review pending |
 
 Documents 03 and 04 remain unapproved drafts.
 
@@ -97,25 +97,144 @@ sequenceDiagram
     Note over A,R: Later boots reuse state without bootstrap
 ```
 
-Step numbers preserve our discussion. This is a dependency overview, not an exact service trace: image downloads and service startup can overlap or happen earlier. The loader starts the kernel; the Hardware-to-Talos arrows abbreviate that chain. API authentication follows configured trust, not a security property created by the reboot itself.
+### Numbered Step Notes
 
-The USB environment initially runs in RAM. Remove/unmount installation media after it has booted, following the installation guide, and identify the SSD before configuration triggers installation. Step 15 expresses the boot-device requirement, not a prompt to race the automatic reboot.
+- **Step 4, common boot chain:** UEFI starts the USB loader, which loads the kernel and initramfs. Talos initially runs in RAM.
+- **Step 5, common networking:** DHCP supplies the node address and, when configured, gateway and DNS. General Linux also needs these for downloads and remote access.
+- **Steps 6–8, Talos difference:** Without machine configuration, Talos exposes its maintenance API. Use `talosctl` to inspect the node and identify the target SSD. This replaces an interactive installation screen; Talos has no ordinary user login or SSH service.
+- **Steps 9–11, Talos difference:** Generate cluster secrets and a control-plane machine configuration. It declares the node role, installation disk and installer image, Kubernetes endpoint, networking and cluster trust material. Applying it tells Talos what to install and which cluster to join; controllers use it to configure services and persist the node configuration. Keep the separate `talosconfig` client credentials on the administrator workstation.
+- **Step 10, Talos difference:** Permit workloads on this single control-plane node. For v1.14, configure the control-plane scheduling taint through `KubeNodeConfig`; otherwise ordinary workloads can remain unscheduled.
+- **Steps 12–14, Talos difference:** Talos downloads an installer container image, not another ISO. The installer writes boot assets and initializes the selected SSD; the node saves configuration for later boots. A general Linux installer usually installs packages and a conventional root filesystem.
+- **Steps 15–20, common SSD transition:** Set the disk boot order and remove or unmount installation media after the USB environment has booted, following the installation guide. Do this before applying configuration triggers installation and its automatic reboot. Step 15 is a boot requirement, not a last-second manual action. On SSD boot, the loader loads the kernel and initramfs, then Talos reads persisted configuration.
+- **Step 21, Talos difference:** The configured API uses mutual TLS. The administrator verifies the server using the Talos CA; the node verifies the client's certificate and proof that it holds the matching private key, then checks its roles. Maintenance access did not require this configured client identity. Applying trusted configuration establishes this change; reboot itself does not create authentication. `--insecure` cannot bypass authentication on the configured API.
+- **Steps 22–23, Talos difference:** Run `talosctl bootstrap` once to initialize etcd for this new cluster. Ordinary restarts reuse existing cluster state.
+- **Steps 24–28, Talos difference:** Talos manages Kubernetes services. Fetch the required images, establish control-plane services and the selected CNI, retrieve `kubeconfig`, then check node and system-pod readiness. A general Linux installation finishes before any separate Kubernetes setup.
 
-Step 22 is a one-time cluster initialization. Do not run bootstrap on ordinary restarts. Step 26 requires functioning container networking. A single node has no node-level availability redundancy.
+The numbered arrows show dependencies, not exact timing. Image downloads and service startup can overlap. Kubernetes readiness requires working container networking; one node provides no node-level availability redundancy.
 
 Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane).
 
 ## Scenario 1.2: Network Boot
 
-**Status: Planned for Round 2.** Complete the USB scenario questions before developing this scenario.
+Scope: a blank SSD, a PXE-capable machine and a provisioning LAN. DHCP supplies boot information; a boot service supplies a compatible loader and OS boot assets. This example uses PXE/iPXE, not booting across a customer NAT.
 
-Use the same comparison structure:
+The provisioning participant below groups DHCP, boot-asset and configuration services for readability. These are separate responsibilities and can run on different servers. Matchbox and Squid are not prerequisites for understanding this sequence.
 
-1. Starting hardware and network prerequisites.
-2. General Linux sequence diagram.
-3. Talos single-node sequence diagram.
-4. Numbered step explanations, including where boot assets and machine configuration come from.
-5. Common behavior and differences from the USB scenario.
-6. Failure, security and recovery questions.
+### General Linux Network Installation and SSD Boot
 
-Then study DHCP, Matchbox and Squid responsibilities in Round 3, and remote NAT in Round 4. Naming a component here does not approve its deployment.
+This is a typical distribution installer flow. Automated installation can replace the operator's selections.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Operator
+    participant N as Machine
+    participant P as Provisioning Services
+    participant S as Installation Source
+    participant D as SSD
+    Note over A,D: Prepare before powering on the blank machine
+    A->>P: Prepare DHCP and compatible network loader
+    A->>P: Publish installer kernel and initramfs
+    A->>S: Publish installation repository
+    A->>N: Connect Ethernet and select network boot
+    A->>N: Power on
+    N->>N: Firmware initializes hardware
+    N->>P: Firmware requests DHCP and boot location
+    P-->>N: Address and boot server information
+    N->>P: Fetch PXE or iPXE loader
+    P-->>N: Return loader and boot instructions
+    N->>P: Loader requests installer kernel and initramfs
+    P-->>N: Return installer boot assets
+    N->>N: Loader starts kernel and installer in RAM
+    N->>P: Installer configures runtime network
+    P-->>N: Return network settings
+    N-->>A: Show installation interface
+    A->>N: Choose disk and system settings
+    N->>S: Request installation content
+    S-->>N: Return packages and filesystem content
+    N->>D: Install OS and SSD boot components
+    N-->>A: Installation complete
+    A->>N: Select SSD boot and reboot
+    Note over A,D: Normal boot from SSD
+    N->>N: Firmware initializes hardware
+    N->>D: Read installed loader and boot assets
+    D-->>N: Return boot assets
+    N->>N: Loader starts kernel and initramfs
+    N->>D: Mount installed root filesystem
+    N->>N: Start init system and configured services
+    N-->>A: Login prompt or desktop ready
+```
+
+### Talos Network Installation and Single-Node Kubernetes
+
+This example selects automatic machine-configuration retrieval with the `talos.config` kernel parameter. Before boot, prepare a node-specific control-plane configuration and protect its delivery. Without that parameter or another configuration source, Talos enters maintenance mode and the administrator can apply configuration through the API as in scenario 1.1.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Admin
+    participant N as Machine and Talos
+    participant P as Provisioning Services
+    participant R as Registry
+    participant D as SSD
+    Note over A,D: Preparation before first boot
+    A->>A: Generate cluster secrets and client credentials
+    A->>A: Prepare single node control plane configuration
+    A->>P: Publish protected node configuration
+    A->>P: Prepare DHCP and compatible network loader
+    A->>P: Publish Talos kernel and initramfs
+    A->>P: Set boot parameters including configuration URL
+    A->>N: Connect Ethernet and select network boot
+    A->>N: Power on
+    N->>N: Firmware initializes hardware
+    N->>P: Firmware requests DHCP and boot location
+    P-->>N: Address and boot server information
+    N->>P: Fetch PXE or iPXE loader
+    P-->>N: Return loader and boot instructions
+    N->>P: Loader requests Talos kernel and initramfs
+    P-->>N: Return Talos boot assets
+    N->>N: Loader starts Talos kernel and initramfs in RAM
+    N->>P: Talos configures runtime network
+    P-->>N: Return network settings
+    N->>P: Fetch machine configuration from configured URL
+    P-->>N: Return node control plane configuration
+    N->>N: Apply configuration and configured API trust
+    N->>R: Fetch Talos installer container image
+    R-->>N: Return installer image
+    N->>D: Install Talos and persist configuration
+    Note over A,D: SSD must take priority on next boot
+    N->>N: Reboot with SSD boot priority
+    N->>N: Firmware initializes hardware
+    N->>D: Read installed loader and boot assets
+    D-->>N: Return boot assets
+    N->>N: Loader starts installed Talos
+    N->>D: Read persisted configuration and state
+    N->>N: Configure network and authenticated API
+    A->>N: Run talosctl bootstrap once
+    N->>N: Initialize etcd for new cluster
+    N->>R: Fetch required Kubernetes images
+    R-->>N: Return images
+    N->>N: Start control plane and selected CNI
+    A->>N: Retrieve kubeconfig using client credentials
+    A->>A: Check node and system pod readiness
+    Note over A,D: Later SSD boots reuse state without bootstrap
+```
+
+### Numbered Step Notes and Differences
+
+- **Steps 1–6, preparation:** Unlike the interactive Linux example, Talos configuration and cluster trust are prepared before this automatic installation. Include the correct installation disk and single-node scheduling configuration. Publish matching architecture/version boot assets and installer image. Generic metal PXE also requires the documented kernel parameters, including `talos.platform=metal`, `slab_nomerge` and `pti=on`.
+- **Steps 7–18, common boot:** Firmware gets network boot information before an OS exists. The loader downloads kernel and initramfs. Once started, the OS configures its own network; the firmware's DHCP exchange is not the running OS network configuration. USB supplies those initial boot assets locally instead.
+- **Steps 19–21, Talos difference:** Talos retrieves and applies machine configuration rather than asking for installer-screen selections. The configuration supplies installation instructions, node role and cluster trust. No maintenance API exchange is needed in this selected automatic path. Configuration retrieval failure must be diagnosed; do not assume installation succeeded.
+- **Steps 22–24, Talos difference:** Installation uses a Talos installer container image from the registry and saves configuration to SSD. PXE kernel and initramfs only start the RAM environment; downloading them does not install the SSD.
+- **Steps 25–31, SSD boot:** Arrange disk-first boot before the automatic reboot. Firmware loads SSD boot assets; Talos restores persisted configuration and its authenticated API. Both operating systems can boot locally after installation without repeating PXE installation.
+- **Steps 32–38, Talos difference:** Authenticate with workstation client credentials, bootstrap the new cluster once, start Kubernetes and its CNI, retrieve Kubernetes credentials, and verify readiness. General Linux does not implicitly create a Kubernetes cluster.
+
+### Security and Failure Boundaries
+
+- DHCP and a MAC-based configuration lookup do not authenticate the machine. Restrict provisioning access and protect configuration containing secrets. HTTPS requires a certificate chain the booted environment actually trusts.
+- These diagrams assume compatible boot assets and working network, storage and registry access. Secure Boot requires a separately prepared trusted boot chain; PXE alone does not establish it.
+- Missing DHCP or boot assets prevents the initial network boot. Missing runtime networking prevents configuration or image retrieval. A wrong install disk can overwrite data.
+- An authenticated Talos API requires valid trusted client credentials and roles. Losing the administrator's private key cannot be fixed with maintenance-mode flags; recovery depends on separately retained credentials or secrets.
+- Detailed security and recovery explanations in documents 03 and 04 remain unapproved drafts. DHCP, Matchbox, Squid and remote NAT remain later discussion topics.
+
+Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane), [general Linux example: RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
