@@ -4,7 +4,7 @@
 
 | Order | Topic |
 | --- | --- |
-| 1 | [General Linux and Talos boot comparison](01-general-linux-boot.md): scenario 1.1 USB, scenario 1.2 network, section 1.3 distant sites |
+| 1 | [General Linux and Talos boot comparison](01-general-linux-boot.md): scenario 1.1 USB, scenario 1.2 network, section 1.3 distant sites, section 1.4 USB versus network boot |
 | 3 | [Common behavior, differences, steps 11 and 21](03-configuration-and-api-authentication.md), **unapproved draft** |
 | 4 | [Security, break-glass and lost keys](04-security-break-glass-and-lost-keys.md), **unapproved draft** |
 
