@@ -8,6 +8,7 @@ The first boot can use USB or the network. Both examples start with a blank SSD 
 | --- | --- | --- |
 | 1.1 | USB | Round 1, current discussion |
 | 1.2 | Network | Complete diagram draft for Round 2; learner review pending |
+| 1.3 | Network boot across distant sites | Network layout and service roles; learner review pending |
 
 Documents 03 and 04 remain unapproved drafts.
 
@@ -271,6 +272,87 @@ sequenceDiagram
 - These diagrams assume compatible boot assets and working network, storage and registry access. Secure Boot requires a separately prepared trusted boot chain; PXE alone does not establish it.
 - Missing DHCP or boot assets prevents the initial network boot. Missing runtime networking prevents configuration or image retrieval. A wrong install disk can overwrite data.
 - An authenticated Talos API requires valid trusted client credentials and roles. Losing the administrator's private key cannot be fixed with maintenance-mode flags; recovery depends on separately retained credentials or secrets.
-- Detailed security and recovery explanations in documents 03 and 04 remain unapproved drafts. DHCP, Matchbox, Squid and remote NAT remain later discussion topics.
+- Detailed security and recovery explanations in documents 03 and 04 remain unapproved drafts. Section 1.3 introduces DHCP, Matchbox, Squid and remote NAT; implementation remains a later discussion.
 
 Sources: [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe), [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos workloads on control planes](https://docs.siderolabs.com/talos/v1.14/deploy-and-manage-workloads/workloads-on-controlplane), [general Linux example: RHEL network installation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/interactively_installing_rhel_over_the_network/preparing-a-pxe-installation-source).
+
+## Section 1.3: Network Boot Across Distant Sites
+
+An EDGE can download boot files from NEN miles away. The distance matters for latency, bandwidth and reliability; the first question is how the machine gets onto the network before Talos exists.
+
+### How It Reaches NEN
+
+For a branch behind customer NAT, one possible design is:
+
+1. **Prepare the branch network:** The router already has Internet access. Configure the existing DHCP service to supply the correct network boot information, and provide a local service for the first loader when using PXE chainloading.
+2. **Power on the blank EDGE:** Its firmware requests an address and boot information on the branch LAN.
+3. **Start iPXE:** Firmware downloads a compatible iPXE loader from the local boot service. Alternatively, use a prepared iPXE USB or supported firmware HTTP boot; the first loader still needs a way to find its boot instructions.
+4. **Contact NEN:** iPXE requests its boot script and assets through the branch gateway. These are outbound connections, so ordinary NAT does not require inbound port forwarding. Routing, DNS and firewall policy must allow them.
+5. **Start Talos in RAM:** The downloaded kernel and initramfs start Talos, which configures its own networking.
+6. **Fetch configuration and install:** Talos retrieves its protected machine configuration, downloads the installer image, and installs to SSD.
+7. **Boot from SSD:** Talos restores its saved configuration. Bootstrap the new cluster once and verify Kubernetes readiness, as in section 1.2.
+
+The EDGE's own Talos WireGuard connection cannot carry steps 2–4: Talos has not started yet. A router-to-NEN VPN can be used because the router is already running.
+
+This is a proposed network layout for NEN, not an assumption that every customer network already supports it.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant E as EDGE
+    participant L as Branch DHCP and Boot Service
+    participant G as Branch Gateway
+    participant N as NEN Boot and Config Services
+    participant R as Image Registry
+    E->>L: Firmware requests DHCP and boot information
+    L-->>E: Address and local loader location
+    E->>L: Download compatible iPXE loader
+    L-->>E: Return loader and NEN script location
+    E->>G: iPXE requests NEN boot script and assets
+    G->>N: Forward outbound requests
+    N-->>G: Return boot script and Talos assets
+    G-->>E: Deliver responses
+    E->>E: Start Talos and configure runtime network
+    E->>G: Request protected machine configuration
+    G->>N: Forward configuration request
+    N-->>G: Return authorized node configuration
+    G-->>E: Deliver configuration
+    E->>G: Request installer image
+    G->>R: Forward registry request
+    R-->>G: Return image
+    G-->>E: Deliver image
+    E->>E: Install to SSD and reboot locally
+```
+
+### Who Does What?
+
+| Player | Job | Where it runs | Is it needed? |
+| --- | --- | --- | --- |
+| **BIOS or UEFI** | Starts the selected network loader | EDGE firmware | Yes, with compatible network-boot support |
+| **DHCP** | Supplies an address and network boot information | Branch LAN, or a reachable server through a configured relay | Required for the illustrated PXE path |
+| **DHCP relay** | Forwards DHCP requests between a subnet and a DHCP server | Branch router or network device | Only when DHCP is on another routed network |
+| **TFTP service** | Supplies the first PXE loader | Usually near the EDGE | Needed for this chainloading example; HTTP boot can use another path |
+| **iPXE** | Runs boot instructions and downloads the OS boot assets | EDGE, before Talos | Useful here; other supported loaders can replace it |
+| **HTTP or HTTPS boot service** | Serves boot scripts, kernel and initramfs | NEN, a regional server or a branch mirror | A boot-file source is needed |
+| **Matchbox** | Matches hardware labels to profiles and produces boot instructions | Usually NEN or a regional provisioning service | Optional; a static iPXE script works for a small lab |
+| **Machine configuration service** | Delivers the correct Talos configuration securely | NEN or a trusted provisioning service | Needed for automatic URL-based configuration; API delivery is another path |
+| **Image registry** | Supplies Talos installer and Kubernetes images | Central, regional or local | Required image content must be reachable |
+| **Squid** | Proxies web requests and can cache eligible content | Branch or regional network | Optional; it reduces some repeated downloads, not the need for DHCP or a loader |
+| **Gateway, DNS and firewall** | Provide name resolution, routing and permitted WAN access | Branch network | Needed for this WAN download path |
+
+The names are **iPXE** and **Squid**.
+
+Matchbox does not replace DHCP. Its machine labels, such as MAC addresses, select a profile; they do not prove a trusted EDGE identity. Its authenticated management API is separate from authenticating booting machines.
+
+Squid is not a bootloader or provisioning controller. An ordinary HTTPS CONNECT tunnel keeps the content encrypted, so Squid cannot simply cache the files inside it. For repeated OS downloads, a local file mirror or registry mirror may fit better. Do not cache secret machine configurations as shared public content.
+
+### Notes
+
+- **Local DHCP, central files:** Keep boot discovery at the branch and fetch larger assets from NEN over permitted HTTP/HTTPS connections.
+- **Central DHCP over a private network:** A branch relay can reach NEN DHCP through a routed WAN or router VPN. It must be configured in advance; DHCP discovery is not an Internet-wide broadcast.
+- **No branch boot service:** A prepared iPXE USB can supply the first loader while the branch's ordinary DHCP supplies networking. A shipped EDGE with Talos already on SSD normally boots locally instead.
+- **Customer network restrictions:** Captive portals, unsupported Wi-Fi authentication or blocked downloads can prevent pre-OS boot. This example assumes Ethernet and permitted access to the required endpoints.
+- **HTTPS and Secure Boot:** The actual loader must support HTTPS and trust the serving certificate. Every executable in a Secure Boot chain must also satisfy the firmware's trust policy; a downloaded iPXE binary is not automatically trusted.
+- **WAN failure:** A cold machine needs its required assets and configuration to continue. Branch mirrors can reduce that dependency. After installation, ordinary SSD boot does not repeat these network installation steps.
+
+Sources: [DHCP and relays: RFC 2131](https://www.rfc-editor.org/rfc/rfc2131), [iPXE project: chainloading](https://ipxe.org/howto/chainloading), [Matchbox](https://matchbox.psdn.io/), [Squid](https://www.squid-cache.org/Intro/), [Squid HTTPS behavior](https://wiki.squid-cache.org/Features/HTTPS), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
