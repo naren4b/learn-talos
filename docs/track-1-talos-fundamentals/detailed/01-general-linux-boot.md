@@ -343,6 +343,10 @@ sequenceDiagram
 
 The names are **iPXE** and **Squid**.
 
+**DHCP:** It gives the EDGE its network address and settings. For PXE, the DHCP setup also tells firmware where to find the first boot file. Once Talos starts, it configures its own network; DHCP does not install Talos or provide cluster credentials.
+
+Watch: [DHCP video supplied in our discussion](https://youtu.be/IUOVSIKj6GU).
+
 Matchbox does not replace DHCP. Its machine labels, such as MAC addresses, select a profile; they do not prove a trusted EDGE identity. Its authenticated management API is separate from authenticating booting machines.
 
 Squid is not a bootloader or provisioning controller. An ordinary HTTPS CONNECT tunnel keeps the content encrypted, so Squid cannot simply cache the files inside it. For repeated OS downloads, a local file mirror or registry mirror may fit better. Do not cache secret machine configurations as shared public content.
@@ -387,3 +391,27 @@ Both methods start Talos. The main difference is where the first boot files come
 For a few machines, USB needs less boot-service setup. For repeated provisioning, network boot centralizes the initial files, while adding network dependencies.
 
 Sources: [Talos getting started](https://docs.siderolabs.com/talos/v1.14/getting-started/getting-started), [Talos PXE](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/pxe).
+
+### Upgrading Talos
+
+After installation to SSD, the upgrade process is the same in both cases.
+
+| Originally installed using | How you upgrade |
+| --- | --- |
+| **USB** | Send an authenticated upgrade request to the running node. It downloads the target installer image and updates its installed OS. No replacement USB is needed for a normal upgrade. |
+| **Network boot** | Use the same API upgrade process. Changing the PXE server's files does not upgrade an already installed node. Those files affect future network boots. |
+
+1. Check the supported upgrade path and choose the correct image, including required customizations.
+2. Request the upgrade through the Talos API, usually with `talosctl upgrade`.
+3. The node downloads the image, updates its boot assets and reboots.
+4. Check the Talos version and cluster health.
+
+Talos retains the previous OS image for rollback. Upgrade Kubernetes separately, and do not repeat cluster bootstrap. Expect downtime on our single-node setup.
+
+In NEN, the management service can schedule the work and an EDGE-side agent can initiate the request. That agent is part of our fleet design, not a built-in consequence of USB or PXE installation.
+
+Source: [Talos upgrade guide](https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/lifecycle-management/upgrading-talos).
+
+### Next
+
+We now know where the boot files come from. Next, we will follow one EDGE's DHCP exchange: how it gets an address, discovers the boot service and starts iPXE.
