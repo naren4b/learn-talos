@@ -2,6 +2,12 @@
 
 Learn how Talos Linux and Kubernetes work, design a secure platform for 1 to 1,000+ EDGEs, and test those ideas through practical projects.
 
+## Portfolio context
+
+This repository is evidence for the **Enterprise Platform Architecture** pillar of the portfolio. It supports two underlying workstreams: data-centre/Kubernetes platform modernization and multi-region edge fleet management.
+
+The portfolio taxonomy is intentionally broader than this repository: **Enterprise Platform Architecture → AWS Architecture → AI Platform Engineering → Technical Leadership**. This repo stays focused on Talos, Kubernetes, secure edge architecture, fleet lifecycle and hands-on platform labs.
+
 ## Three Learning Tracks
 
 | Track | Purpose | Start here |
