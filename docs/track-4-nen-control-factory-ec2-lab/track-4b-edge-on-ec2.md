@@ -1,10 +1,47 @@
-# Track-4B — EDGE on EC2
+# Track-4B — Talos on AWS EC2
 
-**Status:** Planned; no instance launched for this track.
+**Status:** Selected as the next lab. Planning only; no instance launched for this track.
 
 ## Purpose
 
 Use a Talos EC2 instance as the NEN EDGE role for enrollment, outbound connectivity, configuration, health, upgrade and recovery exercises.
+
+## AWS Lab First
+
+Start with one Talos node on EC2. Learn its boot, configuration, authenticated APIs and lifecycle before connecting it to the fleet platform. This stage can proceed without completing the NEN control/factory services.
+
+| Stage | Work | Status | Evidence to collect |
+| --- | --- | --- | --- |
+| 0 | Read-only workstation and AWS account/region baseline | Next | Tool versions, identity and resource inventory |
+| 1 | Choose AMI, architecture, instance and EBS | Planned | Pinned version, provenance, capacity and cost estimate |
+| 2 | Define VPC, subnet, routes, DNS, security groups and access path | Planned | Non-overlapping CIDRs and restricted API reachability |
+| 3 | Deliver machine configuration through protected EC2 user data | Planned | Configuration retrieved and authenticated Talos API available |
+| 4 | Bootstrap once, retrieve kubeconfig and verify networking | Planned | Node, control-plane and system-pod readiness |
+| 5 | Inspect services, logs, storage and restart behavior | Planned | Repeatable diagnostics and persisted state |
+| 6 | Test a supported OS upgrade and recovery procedure | Planned | Version/health checks and documented recovery |
+| 7 | Add AWS workload identity when an application needs it | Later | Allowed and denied AWS API requests from test Pods |
+| 8 | Remove lab resources | Planned | No unintended EC2, EBS or network resources left |
+
+### Notes
+
+- This is self-managed Talos Kubernetes on EC2, not EKS.
+- A single node is a learning baseline. The official AWS guide's multi-AZ control plane is a separate availability exercise.
+- Document how the AWS platform reads instance metadata and user data. Protect secret-bearing configuration and keep it out of Git.
+- Select API access deliberately; do not copy publicly open tutorial rules into our lab.
+- For a disconnected or private route, provide the necessary registry, DNS and time-service reachability.
+- IRSA is a later workload exercise, not a prerequisite for boot. It needs an OIDC issuer/discovery setup, IAM trust and policies, projected tokens and the chosen token-injection mechanism.
+- Keep general OS and Talos explanations in [Track-1 fundamentals](../track-1-talos-fundamentals/detailed/README.md).
+- This is a lab plan; no infrastructure has been provisioned.
+
+### References
+
+- [Talos AWS installation](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/cloud-platforms/aws)
+- [Talos AWS platform behavior](https://docs.siderolabs.com/talos/v1.14/learn-more/talos-platform-configuration)
+- [IRSA on self-managed Talos](https://docs.siderolabs.com/talos/v1.14/security/iam-roles-for-service-accounts)
+
+## Fleet Integration Later
+
+Continue after the standalone AWS baseline is healthy and the central endpoint is reachable.
 
 ## Numbered implementation sequence
 
