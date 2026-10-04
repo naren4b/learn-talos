@@ -328,3 +328,13 @@ Explain the difference between controlplane.yaml, talosconfig and kubeconfig bef
 **Response:** Added the source-linked fundamentals backlog without claiming lab completion. Reused Track-4B for standalone Talos-on-EC2 setup before fleet integration. Added the planned customer EDGE AI topic covering activation, capacity, runtime, artifact delivery, Kubernetes deployment, local access and operations.
 
 **Next practical step:** Read-only workstation and AWS account/region baseline for Track-4B. No resources were created. DHCP/iPXE remains parked; fundamentals can be filled in gradually as needed.
+
+## 2026-10-04: TFTP and iPXE Reference
+
+**Request:** Add the supplied two-stage PXE/iPXE explanation to learning-foundations and link it from the boot comparison.
+
+**Response:** Added a focused reference and roadmap link. Retained the TFTP-first, HTTP/HTTPS-later explanation for conventional chainloading. Corrected absolute claims: iPXE still supports TFTP, other startup paths can avoid it, binary size varies, TFTP is routable and has performance extensions, and HTTPS requires build support and certificate trust. Removed the unrelated closing question and replaced generic references with official iPXE and RFC sources.
+
+**Topic:** [PXE, iPXE, TFTP and HTTP](../learning-foundations/pxe-ipxe-tftp-http.md).
+
+**Continuity:** DHCP/iPXE study remains parked; Track-4B AWS is still the selected next lab. This update creates no infrastructure.
