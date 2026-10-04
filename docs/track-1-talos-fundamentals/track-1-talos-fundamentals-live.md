@@ -33,3 +33,9 @@ This live document records questions, answers and extra notes from the discussio
 - This update completes the requested documentation draft. It does not record learner approval, merge the PR or begin the lab.
 
 Detailed topic: [General Linux and Talos Boot Comparison](detailed/01-general-linux-boot.md).
+
+## 2026-10-04: Writing style
+
+**Feedback:** Use “Notes”, not “Numbered Step Notes”. Keep the writing natural, like a human explanation.
+
+**Response:** Changed both headings to “Notes”, removed repeated labels such as “Talos difference” from the bullets, and simplified the introductory paragraphs. Step references and diagrams are preserved.
