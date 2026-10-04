@@ -53,3 +53,9 @@ Detailed topic: [General Linux and Talos Boot Comparison](detailed/01-general-li
 **Answer:** Added a branch-to-NEN sequence and a service-role table. The illustrated path uses local DHCP and initial loader delivery, then outbound WAN downloads through the customer's gateway. Central DHCP needs an explicitly configured relay and routed connectivity. Talos's own VPN cannot carry pre-OS boot traffic. Matchbox selects boot profiles; Squid is an optional proxy/cache, not a bootloader. Included alternatives for router VPNs, iPXE USB and already installed SSDs, plus trust and WAN dependencies.
 
 **Status:** Documentation draft added to PR 3. No lab deployment or learner approval recorded.
+
+## 2026-10-04: USB versus network boot
+
+**Question:** Add section 1.4 explaining the differences between network boot and USB boot in Talos OS.
+
+**Answer:** Added a comparison table and notes. USB supplies the initial boot files locally; network boot downloads them and needs networking before Talos starts. Configuration delivery is a separate choice. Both can start in maintenance mode, install the same Talos system to SSD, and use the same Kubernetes bootstrap process. USB alone does not provide an offline installation.
