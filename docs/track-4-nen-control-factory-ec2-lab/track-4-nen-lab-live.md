@@ -40,3 +40,13 @@ The user selected the AWS lab as the next practical track. Track-4B already exis
 IRSA is a later workload-identity exercise. Customer EDGE AI inference is recorded as a planned Track-2 topic. No instance, network or workload was deployed.
 
 Restart with read-only workstation discovery and AWS identity/region verification. Do not assume earlier Track-2 resources are active or reusable.
+
+## 2026-10-04 — Three Learning Tracks
+
+**Request:** Organize the repository README around (1) Talos and Kubernetes theory, (2) solution architecture stories covering scale, security, fleets, AI and supply chain, and (3) projects and labs. Preserve connectivity among documents.
+
+**Decision:** The [root README](../../README.md) is the navigation hub. Existing directory names remain to preserve links and history. Theory is referenced by architecture stories; labs reference both and record their results in live files.
+
+**Project direction:** Bare metal remains preferred for EDGEs, with EC2 used for this lab because physical hardware is unavailable. The data-center control and provisioning project now targets AWS. The older WSL/KIND control plan remains a preparation reference; AWS topology and service choices need revision before deployment. No AWS platform or instance selection is implied by this navigation update.
+
+**Next:** Continue the standalone Talos EC2 baseline, then design AWS control/provisioning and integrate the fleet. Earlier Track-2 connectivity work stays paused. No infrastructure was changed.
