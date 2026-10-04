@@ -295,6 +295,8 @@ Network boot has two stages: discover how to boot, then download the boot files.
 - Matchbox does not replace DHCP. Hardware labels select profiles but do not authenticate machines.
 - Squid does not install the OS. Ordinary HTTPS tunnels do not expose their contents for caching.
 
+Read: [PXE, iPXE, TFTP and HTTP](../../learning-foundations/pxe-ipxe-tftp-http.md) for the two-stage delivery process and its exceptions.
+
 Watch: [DHCP video](https://youtu.be/IUOVSIKj6GU).
 
 Sources: [DHCP: RFC 2131](https://www.rfc-editor.org/rfc/rfc2131), [iPXE](https://ipxe.org/howto/chainloading), [Matchbox](https://matchbox.psdn.io/), [Squid HTTPS](https://wiki.squid-cache.org/Features/HTTPS).
