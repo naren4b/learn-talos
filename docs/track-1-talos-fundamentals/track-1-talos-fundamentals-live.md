@@ -59,3 +59,11 @@ Detailed topic: [General Linux and Talos Boot Comparison](detailed/01-general-li
 **Question:** Add section 1.4 explaining the differences between network boot and USB boot in Talos OS.
 
 **Answer:** Added a comparison table and notes. USB supplies the initial boot files locally; network boot downloads them and needs networking before Talos starts. Configuration delivery is a separate choice. Both can start in maintenance mode, install the same Talos system to SSD, and use the same Kubernetes bootstrap process. USB alone does not provide an offline installation.
+
+## 2026-10-04: DHCP reference and upgrades
+
+**Request:** Add the DHCP video https://youtu.be/IUOVSIKj6GU, leave a hook to the next topic, and explain Talos upgrades simply for USB and network installations.
+
+**Answer:** Added the video as a user-supplied reference and a short DHCP explanation. Both SSD-installed cases use authenticated API upgrades; neither requires repeating installation media boot. Changing PXE files does not upgrade existing SSD installations. Added upgrade steps and a lead-in to DHCP address assignment and iPXE discovery.
+
+**Reference note:** The video could not be retrieved for review; its content was not summarized or used as technical evidence. Upgrade notes were checked against official Talos v1.14 documentation.
