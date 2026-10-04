@@ -39,3 +39,9 @@ Detailed topic: [General Linux and Talos Boot Comparison](detailed/01-general-li
 **Feedback:** Use “Notes”, not “Numbered Step Notes”. Keep the writing natural, like a human explanation.
 
 **Response:** Changed both headings to “Notes”, removed repeated labels such as “Talos difference” from the bullets, and simplified the introductory paragraphs. Step references and diagrams are preserved.
+
+## 2026-10-04: Bootloader notes
+
+**Request:** Add the supplied explanation of bootloaders as notes, including their duties, examples and place in the boot process.
+
+**Response:** Added the explanation under “Notes” in the boot comparison. Kept the definition, duties, bootloader table and startup steps. Replaced broad claims about defaults and speed with simpler descriptions, removed the unrelated closing question and generic numbered references, and added official references. Included Talos v1.14's UEFI systemd-boot and UKI path and legacy BIOS GRUB path.
