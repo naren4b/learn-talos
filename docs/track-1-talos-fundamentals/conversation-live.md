@@ -320,3 +320,11 @@ Explain the difference between controlplane.yaml, talosconfig and kubeconfig bef
 > Resume our Talos fundamentals discussion from the parked checkpoint in docs/track-1-talos-fundamentals/conversation-live.md. Read the latest live entry and detailed/01-general-linux-boot.md first. Start with DHCP address assignment before OS startup, then boot-service discovery and iPXE. Go one step at a time. Keep explanations short and natural, use Mermaid where useful, and verify uncertain facts using official sources. Preserve the conversation in the live file and keep topic documents focused on general fundamentals. Use a branch and PR for document changes.
 
 **Repository note:** The user reported PR 3 merged. At this checkpoint the GitHub connector still reported it open, so this entry was saved on that PR's branch. Recheck repository state before making further changes.
+
+## 2026-10-04: Fundamentals Backlog, AWS Lab and EDGE AI
+
+**Request:** Add a summarized fundamentals status list to Track-1; use or create the AWS lab as the next track; add customer EDGE AI workloads and the future blog topic to Track-2.
+
+**Response:** Added the source-linked fundamentals backlog without claiming lab completion. Reused Track-4B for standalone Talos-on-EC2 setup before fleet integration. Added the planned customer EDGE AI topic covering activation, capacity, runtime, artifact delivery, Kubernetes deployment, local access and operations.
+
+**Next practical step:** Read-only workstation and AWS account/region baseline for Track-4B. No resources were created. DHCP/iPXE remains parked; fundamentals can be filled in gradually as needed.
