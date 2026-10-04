@@ -37,6 +37,12 @@ Phases 3–6 receive focused use-case Markdown files when implementation reaches
 - Use numbered steps and Mermaid for diagrams. Provide one practical command at a time.
 - Store no keys, credentials, secret-bearing machine configurations or Terraform state in Git.
 
+## Next Lab: Talos on AWS
+
+[Track-4B](track-4b-edge-on-ec2.md) is the next selected hands-on track. Its first stage brings up standalone Talos on EC2, checks authenticated access and Kubernetes readiness, and learns diagnostics and upgrades. IRSA follows when a workload needs AWS access.
+
+The standalone stage does not depend on deploying NEN control/factory. Keep the central reachability decision for later fleet integration. Track-4A remains planned.
+
 ## First step
 
 Begin [Phase 0](phase-0-baseline.md) with read-only workstation and AWS-context discovery. No AWS infrastructure was created as part of establishing this track.
