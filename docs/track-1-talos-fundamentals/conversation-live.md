@@ -306,3 +306,17 @@ Source: [CA rotation](https://docs.siderolabs.com/talos/v1.14/security/ca-rotati
 #### Our next learning checkpoint
 
 Explain the difference between controlplane.yaml, talosconfig and kubeconfig before attempting recovery commands. Our NEN TPM enrollment interface and EC2 Secure Boot recovery method remain open implementation questions. These notes establish the concepts; they do not claim a successful recovery test.
+
+## 2026-10-04: Parked for Later
+
+**Request:** Park the next topic and leave a hook for restarting this chat.
+
+**Checkpoint:** The general OS and Talos boot reference covers USB and network installation, bootloader/UKI basics, network-service roles and upgrades. The former documents 03 and 04 are preserved above as drafts. No new lab work was started.
+
+**Resume here:** DHCP address assignment → boot-service discovery → iPXE. Start with how a newly powered machine obtains an address before the OS loads. Explain one step, pause for questions, then continue. Keep the explanation general; fleet architecture belongs in its separate track.
+
+**Restart prompt:**
+
+> Resume our Talos fundamentals discussion from the parked checkpoint in docs/track-1-talos-fundamentals/conversation-live.md. Read the latest live entry and detailed/01-general-linux-boot.md first. Start with DHCP address assignment before OS startup, then boot-service discovery and iPXE. Go one step at a time. Keep explanations short and natural, use Mermaid where useful, and verify uncertain facts using official sources. Preserve the conversation in the live file and keep topic documents focused on general fundamentals. Use a branch and PR for document changes.
+
+**Repository note:** The user reported PR 3 merged. At this checkpoint the GitHub connector still reported it open, so this entry was saved on that PR's branch. Recheck repository state before making further changes.
