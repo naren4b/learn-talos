@@ -26,3 +26,21 @@ Identity Root/Issuing CAs, boot signing keys and PCR policy signing keys have se
 **TODO:<Question>** Validate measured boot, policy updates and recovery on the selected firmware/TPM profile.
 
 References: [Talos Secure Boot](https://docs.siderolabs.com/talos/v1.14/platform-specific-installations/bare-metal-platforms/secureboot), [disk encryption](https://docs.siderolabs.com/talos/v1.14/configure-your-talos-cluster/storage-and-disk-management/disk-encryption).
+
+## Connection to AWS CMP317 attestation learning (2026-10-18)
+
+The [CMP317 attestation guide](https://github.com/naren4b/learn-aws/tree/docs/cmp317-attestation-learning/docs/attestation) adds SHA-256 measurement, signed evidence, nonce, a policy verifier and a local simulated key-release lab. The [PCR catalog](https://github.com/naren4b/learn-aws/blob/docs/cmp317-attestation-learning/docs/attestation/pcr-reference.md) lists PCR0-23, measurement writers, readers and OS differences.
+
+For 1,000 EDGEs, potential extension:
+
+```mermaid
+flowchart TD
+  F[Factory approved Talos UKI and signed policies] --> R[Expected release measurements]
+  N[EDGE measured boot and device identity] --> V[Central trust verifier]
+  R --> V
+  V -->|Approved| S[Authorize selected secrets or onboarding]
+  V -->|Rejected| Q[Quarantine and investigate]
+```
+
+**Scope boundary:** Talos TPM-bound disk encryption is not automatically a fleet remote-attestation service. A real implementation still needs trustworthy event/quote evidence, device identity, nonce validation, certificate chains, provisioning, revocation, PCR policy lifecycle, offline recovery, and a fleet decision service. AWS NitroTPM PCR semantics must not be assumed identical to physical Talos TPMs. This remains a planned lab/architecture extension, not implemented fleet enforcement.
+
